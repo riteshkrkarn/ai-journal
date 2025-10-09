@@ -19,6 +19,16 @@ dotenv.config();
 // Get userId from environment (temporary - will be from auth later)
 const DEFAULT_USER_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 
+// Cosine similarity helper function
+function cosineSimilarity(a: number[], b: number[]): number {
+  if (!a || !b || a.length !== b.length) return 0;
+  const dotProduct = a.reduce((sum, val, i) => sum + val * (b[i] || 0), 0);
+  const magnitudeA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
+  const magnitudeB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
+  if (magnitudeA === 0 || magnitudeB === 0) return 0;
+  return dotProduct / (magnitudeA * magnitudeB);
+}
+
 // ===== JOURNAL TOOLS =====
 
 async function saveJournalEntryFunc(date: string, content: string) {
@@ -72,24 +82,36 @@ async function getSummaryFunc(
   endDate: string,
   topic?: string
 ) {
+  console.log(
+    `[getSummary] Called with: startDate=${startDate}, endDate=${endDate}, topic=${topic}`
+  );
+
   const entries = await getEntriesInRange(DEFAULT_USER_ID, startDate, endDate);
+  console.log(`[getSummary] Found ${entries.length} entries in date range`);
 
   if (entries.length === 0) {
     return { summary: "No entries found in this date range." };
   }
 
   let filteredEntries = entries;
+
+  // If topic is specified, filter the date-range entries by semantic similarity
   if (topic) {
     const queryEmbedding = await generateEmbedding(topic);
-    const searchResults = await searchEntries(
-      DEFAULT_USER_ID,
-      queryEmbedding,
-      entries.length
-    );
 
-    filteredEntries = searchResults
-      .filter((r) => r.similarity > 0.5)
-      .map((r) => ({ date: r.date, content: r.content }));
+    // Calculate similarity for each entry in the date range
+    filteredEntries = entries.filter((entry) => {
+      const entryEmbedding = JSON.parse(entry.embedding || "[]");
+      const similarity = cosineSimilarity(queryEmbedding, entryEmbedding);
+      console.log(
+        `[getSummary] Entry ${entry.date}: similarity=${similarity.toFixed(3)}`
+      );
+      return similarity > 0.25; // Lower threshold for better recall
+    });
+
+    console.log(
+      `[getSummary] Topic filter "${topic}" kept ${filteredEntries.length}/${entries.length} entries`
+    );
   }
 
   if (filteredEntries.length === 0) {
@@ -111,8 +133,20 @@ async function getSummaryFunc(
 
 const getSummary = new FunctionTool(getSummaryFunc, {
   name: "getSummary",
-  description:
-    "Get a summary of journal entries for a date range. Optionally filter by topic. Use when user asks 'what did I do this week/month', 'summarize my entries', etc.",
+  description: `Get a summary of journal entries for a date range with optional topic filter.
+    
+CRITICAL DATE CALCULATION RULES:
+- When user says "this week", calculate: startDate = 7 days ago, endDate = TODAY
+- When user says "last week", calculate: startDate = 14 days ago, endDate = 7 days ago  
+- When user says "this month", use first day of current month to TODAY
+- TODAY = use the date from the agent instruction
+
+PARAMETERS:
+- startDate: Start date (YYYY-MM-DD format) - REQUIRED
+- endDate: End date (YYYY-MM-DD format) - REQUIRED  
+- topic: Optional search term (e.g., "coding", "study", "work") - filters results semantically
+
+EXAMPLE: If today is 2025-10-10 and user says "this week", use startDate="2025-10-03" and endDate="2025-10-10"`,
 });
 
 // ===== GOAL TOOLS =====
@@ -225,21 +259,33 @@ const updateGoalStatusTool = new FunctionTool(updateGoalStatusFunc, {
 
 export async function journalAgent() {
   const today = new Date().toISOString().split("T")[0];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+  const weekAgo = new Date(Date.now() - 7 * 86400000)
+    .toISOString()
+    .split("T")[0];
 
   return await AgentBuilder.create("journal_agent")
     .withModel("gemini-2.5-flash")
     .withInstruction(
-      `You are a helpful journal assistant with goal tracking capabilities. Today's date is ${today}. 
+      `You are a helpful journal assistant with goal tracking capabilities.
+
+CURRENT DATE INFORMATION (USE THESE EXACT VALUES):
+- Today's date: ${today}
+- Yesterday's date: ${yesterday}  
+- One week ago: ${weekAgo}
+
+DATE CALCULATION RULES - FOLLOW EXACTLY:
+When user says "this week" or "my week" or "coding progress this week":
+  → Call getSummary with: startDate="${weekAgo}", endDate="${today}", topic="coding"
+  → Do NOT calculate dates yourself, use the exact values above
 
 JOURNAL FEATURES:
-- When user says "today", "yesterday", or relative dates, convert them
 - "today" = ${today}
-- "yesterday" = calculate yesterday's date
-- "this week" = past 7 days from today
+- "yesterday" = ${yesterday}
 - Use searchJournalEntries for questions about past entries
 - Use saveJournalEntry to save new entries
 - Use fetchJournalEntry only for exact date lookups
-- Use getSummary for weekly/monthly summaries
+- Use getSummary for weekly/monthly summaries with the exact dates shown above
 
 GOAL FEATURES:
 - Use setGoal when user wants to create a new goal

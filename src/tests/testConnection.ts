@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { generateEmbedding } from "./src/services/embeddings";
+import { generateEmbedding } from "../services/embeddings";
 import * as dotenv from "dotenv";
 
 // Load environment variables FIRST

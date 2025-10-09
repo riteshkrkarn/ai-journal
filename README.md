@@ -1,53 +1,210 @@
-# 🚀 Quick Implementation Guide - Summary Feature
+<p align="center">
+  <img src="public/logo.png" alt="ReflectIQ Logo" width="200"/>
+</p>
 
-## What's New?
+# ReflectIQ
 
-### ✨ Features Added
+An intelligent journaling application powered by AI that lets you save entries and query them using natural language. Built with TypeScript, Supabase, and IQ AI ADK.
 
-1. **Weekly/Monthly Summaries** - Get overviews of your journal entries
-2. **Topic-Filtered Summaries** - "My coding progress this week"
-3. **Persistent Data** - journal.db survives restarts
-4. **Semantic Tags** - Your search already works like tags
+## Features
 
-## 🧪 Testing
+- **Natural Language Interface**: Chat with your journal using conversational queries
+- **Semantic Search**: Find entries by meaning, not just keywords (e.g., "show me coding entries" finds AI, TypeScript, Python entries)
+- **Smart Summaries**: Get weekly/monthly summaries filtered by topic
+- **Goal Tracking**: Set goals, track progress, and see how often you mention them in entries
+- **Cloud Storage**: All entries securely stored in Supabase with vector embeddings
+- **Date Flexibility**: Use natural dates like "today", "yesterday", "this week"
 
-### Run Full Test Suite
+## Tech Stack
 
-```powershell
-npm start
-# or
-npx tsx src/index.ts
+- **IQ AI ADK v0.3.7**: Agent framework with Gemini 2.5 Flash
+- **Supabase**: PostgreSQL database with vector storage
+- **Google Generative AI**: text-embedding-004 for semantic search (768 dimensions)
+- **TypeScript**: Type-safe development
+- **tsx**: Runtime for TypeScript execution
+
+## Setup
+
+### Prerequisites
+
+- Node.js (v18+)
+- Supabase account
+- Google API key (Gemini)
+
+### Installation
+
+1. **Clone the repository**
+
+   ```bash
+   git clone <your-repo-url>
+   cd ai-journal
+   ```
+
+2. **Install dependencies**
+
+   ```bash
+   npm install
+   ```
+
+3. **Set up Supabase**
+
+   - Create a project at [supabase.com](https://supabase.com)
+   - Run this SQL in the SQL Editor to create the `entries` table:
+
+   ```sql
+   CREATE TABLE entries (
+     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+     user_id UUID NOT NULL,
+     date DATE NOT NULL,
+     content TEXT NOT NULL,
+     embedding TEXT,
+     created_at TIMESTAMPTZ DEFAULT NOW(),
+     updated_at TIMESTAMPTZ DEFAULT NOW()
+   );
+
+   CREATE INDEX idx_entries_user_date ON entries(user_id, date);
+   CREATE INDEX idx_entries_user_id ON entries(user_id);
+   ```
+
+4. **Configure environment variables**
+
+   Create a `.env` file in the root directory:
+
+   ```env
+   GOOGLE_API_KEY=your_google_api_key_here
+   SUPABASE_URL=your_supabase_project_url
+   SUPABASE_SECRET_KEY=your_supabase_anon_key
+   ```
+
+   **PowerShell users**: Use this command to avoid quote issues:
+
+   ```powershell
+   @"
+   GOOGLE_API_KEY=your_key
+   SUPABASE_URL=https://your-project.supabase.co
+   SUPABASE_SECRET_KEY=your_key
+   "@ | Out-File -FilePath .env -Encoding utf8
+   ```
+
+5. **Run the CLI**
+   ```bash
+   npm run cli
+   ```
+
+## Usage
+
+### Saving Entries
+
+```
+You: Save my journal for 2025-10-10: Learned about AI agents and TypeScript
+You: Yesterday I worked on Python and built an ML model
 ```
 
-**This will:**
-
-- Save 7 entries (one per day for a week)
-- Test semantic search ("coding" finds "programming")
-- Test summaries ("summarize this week")
-- Test topic summaries ("my coding progress")
-
-### Run Interactive CLI
-
-```powershell
-npm run cli
-# or
-npx tsx src/cli.ts
-```
-
----
-
-## 💡 Usage Examples
-
-### 1. Semantic Tags (No Changes Needed!)
+### Searching Entries
 
 ```
-You: Save my journal for today: Did some coding
-You: Save for yesterday: Worked on Java project
-You: Save for 2024-10-07: Programming practice
-
-You: Tell me about all my coding work
-📝 Shows all 3 entries! (coding = Java = programming)
+You: Show me entries about coding
+You: What did I learn about AI?
 ```
+
+### Getting Summaries
+
+```
+You: Summarize my coding progress this week
+You: Give me a summary of my work from Oct 1 to Oct 7
+```
+
+### Managing Goals
+
+```
+You: Add goal: Learn TypeScript
+You: Show my goals
+You: Check my progress on learning TypeScript
+You: Mark my TypeScript goal as complete
+```
+
+### Fetching Specific Entries
+
+```
+You: Show my journal for 2025-10-10
+You: What did I write yesterday?
+```
+
+## Project Structure
+
+```
+ai-journal/
+├── src/
+│   ├── agents/
+│   │   └── assistant/
+│   │       └── journalAgent.ts    # Main agent with tools
+│   ├── services/
+│   │   ├── database.ts            # Supabase operations
+│   │   ├── embeddings.ts          # Vector embedding generation
+│   │   └── goals.ts               # Goal management
+│   ├── tests/
+│   │   ├── testConnection.ts      # Test Supabase connection
+│   │   ├── debugDatabase.ts       # View database contents
+│   │   └── clearDatabase.ts       # Clear test data
+│   ├── cli.ts                     # Interactive CLI interface
+│   └── index.ts                   # Entry point
+├── .env                           # Environment variables
+├── package.json
+├── tsconfig.json
+└── README.md
+```
+
+## Available Tools
+
+The journal agent has these capabilities:
+
+- `saveJournalEntry` - Save a new journal entry with date and content
+- `fetchJournalEntry` - Get entry for a specific date
+- `searchJournalEntries` - Semantic search across all entries
+- `getSummary` - Get summarized entries for a date range with optional topic filter
+- `setGoal` - Create a new goal
+- `listGoals` - View all goals (active and completed)
+- `checkGoalProgress` - Find journal entries related to a goal
+- `updateGoalStatus` - Mark goals as complete/incomplete
+
+## Testing
+
+```bash
+# Test database connection
+npx tsx src/tests/testConnection.ts
+
+# View all entries
+npx tsx src/tests/debugDatabase.ts
+
+# Clear all entries (use with caution!)
+npx tsx src/tests/clearDatabase.ts
+```
+
+## Troubleshooting
+
+### Environment variables not loading
+
+If using PowerShell, ensure no extra quotes in `.env`. Recreate using the here-string method shown in setup.
+
+### Semantic search not finding entries
+
+The similarity threshold is set to 0.25. Entries with lower semantic similarity won't appear. Adjust in `journalAgent.ts` if needed.
+
+### "No entries found" for date range
+
+Check that:
+
+- Entries exist in that date range (use `debugDatabase.ts`)
+- Date format is YYYY-MM-DD
+- Topic filter (if used) isn't too strict
+
+## License
+
+MIT
+
+## Contributing
+
+Pull requests welcome! Please ensure TypeScript types are correct and run tests before submitting.
 
 **Why it works:** Embeddings understand semantic meaning automatically.
 

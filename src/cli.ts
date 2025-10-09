@@ -5,14 +5,18 @@ async function startCLI() {
   console.log("\n📔 AI Journal - Interactive Mode");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("💡 What you can do:");
-  console.log("   📝 Save: 'Save my journal for today: I built a CLI'");
-  console.log("   🔍 Search: 'What did I work on today?'");
-  console.log("   🏷️  Topics: 'Show entries about coding' (semantic search)");
   console.log(
-    "   📊 Summary: 'Summarize this week' or 'My study progress this week'"
+    "   📝 Save: 'Save my journal for 2024-10-10: Learned about AI agents'"
   );
+  console.log("   🔍 Fetch: 'Show my journal for 2024-10-10'");
+  console.log(
+    "   🏷️  Search: 'Show me entries about coding' (semantic search)"
+  );
+  console.log("   📊 Summary: 'Summarize my coding progress this week'");
+  console.log("   🎯 Goals: 'Add goal: Learn TypeScript' or 'Show my goals'");
+  console.log("   📈 Progress: 'Update my TypeScript goal to in-progress'");
   console.log("   🚪 Exit: Type 'exit' or 'quit'\n");
-  console.log("✨ Tip: Your data persists across sessions in journal.db\n");
+  console.log("✨ Features: Cloud storage, semantic search, goal tracking\n");
 
   const { runner } = await journalAgent();
   const rl = readline.createInterface({
@@ -34,7 +38,7 @@ async function startCLI() {
         trimmed.toLowerCase() === "quit"
       ) {
         console.log(
-          "\n👋 Goodbye! Your journal entries are saved in journal.db\n"
+          "\n👋 Goodbye! Your journal entries are safely stored in the cloud\n"
         );
         rl.close();
         process.exit(0);

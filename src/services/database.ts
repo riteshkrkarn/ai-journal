@@ -155,11 +155,12 @@ export async function getEntriesInRange(
   Array<{
     date: string;
     content: string;
+    embedding: string;
   }>
 > {
   const { data, error } = await supabase
     .from("entries")
-    .select("date, content")
+    .select("date, content, embedding")
     .eq("user_id", userId)
     .gte("date", startDate)
     .lte("date", endDate)
