@@ -1,0 +1,25 @@
+{
+  "name": "ai-journal",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "tsx src/index.ts",
+    "cli": "tsx src/cli.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@iqai/adk": "^0.3.7",
+    "better-sqlite3": "^11.10.0",
+    "dotenv": "^17.2.3",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13"
+  }
+}
