@@ -13,11 +13,14 @@ import {
   getGoalById,
   updateGoalStatus,
 } from "../../services/goals";
+import {
+  createCalendarEvent,
+  listUpcomingEvents,
+  parseDateTime,
+} from "../../services/calender";
+import { hasCalendarAccess } from "../../services/oauth";
 
 dotenv.config();
-
-// Get userId from environment (temporary - will be from auth later)
-const DEFAULT_USER_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 
 // Cosine similarity helper function
 function cosineSimilarity(a: number[], b: number[]): number {
@@ -31,32 +34,26 @@ function cosineSimilarity(a: number[], b: number[]): number {
 
 // ===== JOURNAL TOOLS =====
 
-async function saveJournalEntryFunc(date: string, content: string) {
+async function saveJournalEntryFunc(
+  userId: string,
+  date: string,
+  content: string
+) {
   const embedding = await generateEmbedding(content);
-  await saveEntry(DEFAULT_USER_ID, date, content, embedding);
+  await saveEntry(userId, date, content, embedding);
   return { result: "Entry saved!" };
 }
 
-const saveJournalEntry = new FunctionTool(saveJournalEntryFunc, {
-  name: "saveJournalEntry",
-  description: "Add a new journal entry for a specific date.",
-});
-
-async function fetchJournalEntryFunc(date: string) {
-  const entry = await fetchEntryByDate(DEFAULT_USER_ID, date);
+async function fetchJournalEntryFunc(userId: string, date: string) {
+  const entry = await fetchEntryByDate(userId, date);
   return entry
     ? { content: entry.content }
     : { content: "No entry found for this date." };
 }
 
-const fetchJournalEntry = new FunctionTool(fetchJournalEntryFunc, {
-  name: "fetchJournalEntry",
-  description: "Read your journal entry for a specific date.",
-});
-
-async function searchJournalEntriesFunc(query: string) {
+async function searchJournalEntriesFunc(userId: string, query: string) {
   const queryEmbedding = await generateEmbedding(query);
-  const results = await searchEntries(DEFAULT_USER_ID, queryEmbedding, 3);
+  const results = await searchEntries(userId, queryEmbedding, 3);
 
   if (results.length === 0) {
     return { entries: "No matching entries found." };
@@ -71,13 +68,8 @@ async function searchJournalEntriesFunc(query: string) {
   };
 }
 
-const searchJournalEntries = new FunctionTool(searchJournalEntriesFunc, {
-  name: "searchJournalEntries",
-  description:
-    "Search journal entries by meaning or topic. Use this when user asks questions like 'when did I...', 'what did I write about...', or 'show entries about...'",
-});
-
 async function getSummaryFunc(
+  userId: string,
   startDate: string,
   endDate: string,
   topic?: string
@@ -86,14 +78,14 @@ async function getSummaryFunc(
     `[getSummary] Called with: startDate=${startDate}, endDate=${endDate}, topic=${topic}`
   );
 
-  const entries = await getEntriesInRange(DEFAULT_USER_ID, startDate, endDate);
+  const entries = await getEntriesInRange(userId, startDate, endDate);
   console.log(`[getSummary] Found ${entries.length} entries in date range`);
 
   if (entries.length === 0) {
     return { summary: "No entries found in this date range." };
   }
 
-  let filteredEntries = entries;
+  let filteredEntries: Array<{ date: string; content: string }> = entries;
 
   // If topic is specified, filter the date-range entries by semantic similarity
   if (topic) {
@@ -131,46 +123,23 @@ async function getSummaryFunc(
   };
 }
 
-const getSummary = new FunctionTool(getSummaryFunc, {
-  name: "getSummary",
-  description: `Get a summary of journal entries for a date range with optional topic filter.
-    
-CRITICAL DATE CALCULATION RULES:
-- When user says "this week", calculate: startDate = 7 days ago, endDate = TODAY
-- When user says "last week", calculate: startDate = 14 days ago, endDate = 7 days ago  
-- When user says "this month", use first day of current month to TODAY
-- TODAY = use the date from the agent instruction
-
-PARAMETERS:
-- startDate: Start date (YYYY-MM-DD format) - REQUIRED
-- endDate: End date (YYYY-MM-DD format) - REQUIRED  
-- topic: Optional search term (e.g., "coding", "study", "work") - filters results semantically
-
-EXAMPLE: If today is 2025-10-10 and user says "this week", use startDate="2025-10-03" and endDate="2025-10-10"`,
-});
-
 // ===== GOAL TOOLS =====
 
 async function setGoalFunc(
+  userId: string,
   title: string,
   description: string,
   deadline: string
 ) {
-  const goal = await createGoal(DEFAULT_USER_ID, title, description, deadline);
+  const goal = await createGoal(userId, title, description, deadline);
   return {
     result: `Goal created: "${goal.title}" (ID: ${goal.id})`,
     goalId: goal.id,
   };
 }
 
-const setGoal = new FunctionTool(setGoalFunc, {
-  name: "setGoal",
-  description:
-    "Create a new goal with a title, description, and deadline (YYYY-MM-DD format). Use when user says 'set a goal', 'I want to achieve', 'my goal is', etc.",
-});
-
-async function listGoalsFunc() {
-  const goals = await getAllGoals(DEFAULT_USER_ID);
+async function listGoalsFunc(userId: string) {
+  const goals = await getAllGoals(userId);
 
   if (goals.length === 0) {
     return { goals: "No goals found. Create one to get started!" };
@@ -190,14 +159,8 @@ async function listGoalsFunc() {
   };
 }
 
-const listGoals = new FunctionTool(listGoalsFunc, {
-  name: "listGoals",
-  description:
-    "Show all goals with their status (completed or in progress). Use when user asks 'show my goals', 'list goals', 'what are my goals', etc.",
-});
-
-async function checkGoalProgressFunc(goalId: string) {
-  const goal = await getGoalById(DEFAULT_USER_ID, goalId);
+async function checkGoalProgressFunc(userId: string, goalId: string) {
+  const goal = await getGoalById(userId, goalId);
 
   if (!goal) {
     return { error: "Goal not found." };
@@ -206,11 +169,7 @@ async function checkGoalProgressFunc(goalId: string) {
   // Use semantic search to find entries related to this goal
   const goalText = `${goal.title} ${goal.description}`;
   const queryEmbedding = await generateEmbedding(goalText);
-  const relatedEntries = await searchEntries(
-    DEFAULT_USER_ID,
-    queryEmbedding,
-    10
-  );
+  const relatedEntries = await searchEntries(userId, queryEmbedding, 10);
 
   // Filter entries with good relevance (>0.6 similarity)
   const relevantEntries = relatedEntries.filter((e) => e.similarity > 0.6);
@@ -236,14 +195,12 @@ async function checkGoalProgressFunc(goalId: string) {
   };
 }
 
-const checkGoalProgress = new FunctionTool(checkGoalProgressFunc, {
-  name: "checkGoalProgress",
-  description:
-    "Check progress on a specific goal by finding related journal entries using semantic search. Requires goal ID. Use when user asks 'how am I doing on [goal]', 'check my progress', etc.",
-});
-
-async function updateGoalStatusFunc(goalId: string, completed: boolean) {
-  await updateGoalStatus(DEFAULT_USER_ID, goalId, completed);
+async function updateGoalStatusFunc(
+  userId: string,
+  goalId: string,
+  completed: boolean
+) {
+  await updateGoalStatus(userId, goalId, completed);
   return {
     result: completed
       ? "🎉 Goal marked as completed!"
@@ -251,23 +208,238 @@ async function updateGoalStatusFunc(goalId: string, completed: boolean) {
   };
 }
 
-const updateGoalStatusTool = new FunctionTool(updateGoalStatusFunc, {
-  name: "updateGoalStatus",
-  description:
-    "Mark a goal as completed (true) or in progress (false). Requires goal ID. Use when user says 'mark goal as done', 'complete goal', 'uncomplete goal', etc.",
-});
+// ===== CALENDAR TOOLS =====
 
-export async function journalAgent() {
+async function addToCalendarFunc(
+  userId: string,
+  title: string,
+  date: string,
+  time: string,
+  description?: string
+) {
+  // Check if calendar is connected
+  const hasAccess = await hasCalendarAccess(userId);
+
+  if (!hasAccess) {
+    return {
+      error:
+        "Google Calendar not connected. Please connect your calendar first by visiting the connect endpoint.",
+      suggestion:
+        "You can connect your calendar through the API at /calendar/connect",
+    };
+  }
+
+  try {
+    // Parse date and time
+    const { start, end } = parseDateTime(date, time);
+
+    // Create event
+    const event = await createCalendarEvent(userId, {
+      title,
+      startTime: start,
+      endTime: end,
+      ...(description && { description }), // Only add if truthy
+    });
+
+    return {
+      success: true,
+      message: `✅ Event "${title}" added to your calendar!`,
+      event: {
+        title: event.title,
+        link: event.link,
+        start: event.start,
+        end: event.end,
+      },
+    };
+  } catch (error) {
+    return {
+      error: `Failed to create calendar event: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`,
+    };
+  }
+}
+
+async function listUpcomingEventsFunc(userId: string, limit: number = 5) {
+  // Check if calendar is connected
+  const hasAccess = await hasCalendarAccess(userId);
+
+  if (!hasAccess) {
+    return {
+      error:
+        "Google Calendar not connected. Please connect your calendar first.",
+      suggestion:
+        "You can connect your calendar through the API at /calendar/connect",
+    };
+  }
+
+  try {
+    const events = await listUpcomingEvents(userId, limit);
+
+    if (events.length === 0) {
+      return {
+        message: "You have no upcoming events.",
+        events: [],
+      };
+    }
+
+    return {
+      events: events.map((e: any) => ({
+        title: e.title,
+        start: e.start,
+        description: e.description,
+        link: e.link,
+      })),
+      count: events.length,
+      message: `You have ${events.length} upcoming event${
+        events.length > 1 ? "s" : ""
+      }.`,
+    };
+  } catch (error) {
+    return {
+      error: `Failed to get events: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`,
+    };
+  }
+}
+
+// ===== AGENT BUILDER =====
+
+export async function journalAgent(userId: string) {
   const today = new Date().toISOString().split("T")[0];
   const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
   const weekAgo = new Date(Date.now() - 7 * 86400000)
     .toISOString()
     .split("T")[0];
 
+  // Create tools with userId bound
+  const saveJournalEntry = new FunctionTool(
+    (date: string, content: string) =>
+      saveJournalEntryFunc(userId, date, content),
+    {
+      name: "saveJournalEntry",
+      description: "Add a new journal entry for a specific date.",
+    }
+  );
+
+  const fetchJournalEntry = new FunctionTool(
+    (date: string) => fetchJournalEntryFunc(userId, date),
+    {
+      name: "fetchJournalEntry",
+      description: "Read your journal entry for a specific date.",
+    }
+  );
+
+  const searchJournalEntries = new FunctionTool(
+    (query: string) => searchJournalEntriesFunc(userId, query),
+    {
+      name: "searchJournalEntries",
+      description:
+        "Search journal entries by meaning or topic. Use this when user asks questions like 'when did I...', 'what did I write about...', or 'show entries about...'",
+    }
+  );
+
+  const getSummary = new FunctionTool(
+    (startDate: string, endDate: string, topic?: string) =>
+      getSummaryFunc(userId, startDate, endDate, topic),
+    {
+      name: "getSummary",
+      description: `Get a summary of journal entries for a date range with optional topic filter.
+    
+CRITICAL DATE CALCULATION RULES:
+- When user says "this week", calculate: startDate = 7 days ago, endDate = TODAY
+- When user says "last week", calculate: startDate = 14 days ago, endDate = 7 days ago  
+- When user says "this month", use first day of current month to TODAY
+- TODAY = use the date from the agent instruction
+
+PARAMETERS:
+- startDate: Start date (YYYY-MM-DD format) - REQUIRED
+- endDate: End date (YYYY-MM-DD format) - REQUIRED  
+- topic: Optional search term (e.g., "coding", "study", "work") - filters results semantically
+
+EXAMPLE: If today is 2025-10-10 and user says "this week", use startDate="2025-10-03" and endDate="2025-10-10"`,
+    }
+  );
+
+  const setGoal = new FunctionTool(
+    (title: string, description: string, deadline: string) =>
+      setGoalFunc(userId, title, description, deadline),
+    {
+      name: "setGoal",
+      description:
+        "Create a new goal with a title, description, and deadline (YYYY-MM-DD format). Use when user says 'set a goal', 'I want to achieve', 'my goal is', etc.",
+    }
+  );
+
+  const listGoals = new FunctionTool(() => listGoalsFunc(userId), {
+    name: "listGoals",
+    description:
+      "Show all goals with their status (completed or in progress). Use when user asks 'show my goals', 'list goals', 'what are my goals', etc.",
+  });
+
+  const checkGoalProgress = new FunctionTool(
+    (goalId: string) => checkGoalProgressFunc(userId, goalId),
+    {
+      name: "checkGoalProgress",
+      description:
+        "Check progress on a specific goal by finding related journal entries using semantic search. Requires goal ID. Use when user asks 'how am I doing on [goal]', 'check my progress', etc.",
+    }
+  );
+
+  const updateGoalStatusTool = new FunctionTool(
+    (goalId: string, completed: boolean) =>
+      updateGoalStatusFunc(userId, goalId, completed),
+    {
+      name: "updateGoalStatus",
+      description:
+        "Mark a goal as completed (true) or in progress (false). Requires goal ID. Use when user says 'mark goal as done', 'complete goal', 'uncomplete goal', etc.",
+    }
+  );
+
+  const addToCalendar = new FunctionTool(
+    (title: string, date: string, time: string, description?: string) =>
+      addToCalendarFunc(userId, title, date, time, description),
+    {
+      name: "addToCalendar",
+      description: `Add an event to Google Calendar. Use when user says things like:
+    - "Add to calendar: Meeting tomorrow at 3pm"
+    - "Schedule team standup for Monday 9am"
+    - "Remind me about doctor appointment next Friday 2pm"
+    - "Create calendar event for project deadline"
+    
+PARAMETERS:
+- title: Event title (required) - e.g., "Team Meeting", "Doctor Appointment"
+- date: Date like "today", "tomorrow", "2024-10-15", "next Monday", "Friday"
+- time: Time like "3pm", "14:30", "9:00am", "2:30pm"
+- description: Optional event details or notes
+
+IMPORTANT: If calendar is not connected, inform the user they need to connect it first.`,
+    }
+  );
+
+  const listCalendarEvents = new FunctionTool(
+    (limit?: number) => listUpcomingEventsFunc(userId, limit || 5),
+    {
+      name: "listUpcomingEvents",
+      description: `List upcoming calendar events. Use when user asks:
+    - "What's on my calendar?"
+    - "Show my upcoming events"
+    - "What do I have scheduled?"
+    - "Do I have any meetings today?"
+    - "What's coming up?"
+    
+PARAMETERS:
+- limit: Number of events to show (default: 5, max: 20)
+
+IMPORTANT: If calendar is not connected, inform the user they need to connect it first.`,
+    }
+  );
+
   return await AgentBuilder.create("journal_agent")
     .withModel("gemini-2.5-flash")
     .withInstruction(
-      `You are a helpful journal assistant with goal tracking capabilities.
+      `You are a helpful journal assistant with goal tracking and Google Calendar integration capabilities.
 
 CURRENT DATE INFORMATION (USE THESE EXACT VALUES):
 - Today's date: ${today}
@@ -294,18 +466,40 @@ GOAL FEATURES:
 - Use updateGoalStatus to mark goals as complete/incomplete
 - When checking progress, explain that you're using AI to find related journal entries
 
-When showing results, write in paragraph form with a narrative style, not bullet points.
-Be encouraging and supportive about goals and progress.`
+CALENDAR FEATURES:
+- Use addToCalendar when user wants to schedule events or create reminders
+- Use listUpcomingEvents when user asks about their calendar or upcoming events
+- Calendar events can be added with natural language like "tomorrow at 3pm"
+- If calendar is not connected, politely inform the user and explain they can connect it via the API
+- When creating events, confirm the details back to the user
+- Support natural language dates like "today", "tomorrow", "next Monday", "Friday"
+
+RESPONSE STYLE:
+- Write in paragraph form with a narrative style, not bullet points
+- Be encouraging and supportive about goals and progress
+- Be conversational and friendly
+- When showing multiple items (goals, events), present them in a clear, organized way
+- Always confirm actions taken (entry saved, goal created, event scheduled)
+
+ERROR HANDLING:
+- If calendar is not connected, guide the user to connect it
+- If a goal ID is not found, ask the user to list their goals first
+- If a date is ambiguous, ask for clarification`
     )
     .withTools(
+      // Journal tools (4)
       saveJournalEntry,
       fetchJournalEntry,
       searchJournalEntries,
       getSummary,
+      // Goal tools (4)
       setGoal,
       listGoals,
       checkGoalProgress,
-      updateGoalStatusTool
+      updateGoalStatusTool,
+      // Calendar tools (2)
+      addToCalendar,
+      listCalendarEvents
     )
     .build();
 }

@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "tsx src/index.ts",
-    "cli": "tsx src/cli.ts"
+    "cli": "tsx src/cli.ts",
+    "api": "tsx src/api/server.ts",
+    "dev": "tsx watch src/api/server.ts",
+    "test:ws": "tsx src/tests/wsTest.ts"
   },
   "keywords": [],
   "author": "",
@@ -15,13 +17,23 @@
     "@google/generative-ai": "^0.24.1",
     "@iqai/adk": "^0.3.7",
     "@supabase/supabase-js": "^2.75.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
     "better-sqlite3": "^11.10.0",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "googleapis": "^162.0.0",
+    "jsonwebtoken": "^9.0.2",
     "supabase": "^2.48.3",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13"
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^24.7.1",
+    "@types/ws": "^8.18.1"
   }
 }
