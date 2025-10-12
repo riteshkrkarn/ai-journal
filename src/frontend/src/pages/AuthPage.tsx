@@ -1,0 +1,255 @@
+// First, install React Hook Form:
+// npm install react-hook-form
+
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import type { SubmitHandler } from 'react-hook-form';
+
+// Types for form data
+type LoginFormData = {
+    email: string;
+    password: string;
+};
+
+type SignupFormData = {
+    email: string;
+    password: string;
+    confirmPassword: string;
+};
+
+const AuthPage: React.FC = () => {
+    const navigate = useNavigate();
+    const [isLogin, setIsLogin] = useState(true);
+
+    // Separate forms for login and signup
+    const loginForm = useForm<LoginFormData>();
+    const signupForm = useForm<SignupFormData>();
+
+    const onLoginSubmit: SubmitHandler<LoginFormData> = (data) => {
+        console.log('Logging In...', data);
+        navigate('/dashboard');
+    };
+
+    const onSignupSubmit: SubmitHandler<SignupFormData> = (data) => {
+        console.log('Signing Up...', data);
+        navigate('/dashboard');
+    };
+
+    const toggleAuthMode = (mode: 'login' | 'signup') => {
+        setIsLogin(mode === 'login');
+        // Reset forms when switching modes
+        loginForm.reset();
+        signupForm.reset();
+    };
+
+    return (
+        <div className="min-h-screen w-full flex items-center justify-center bg-gray-950 p-4 sm:p-6 lg:p-8 font-['Inter',sans-serif]">
+            
+            <div className="w-full max-w-md bg-[#121212] p-8 sm:p-10 rounded-3xl shadow-2xl shadow-[#4BBEBB]/20 border border-gray-800">
+
+                <div className="flex justify-center mb-6">
+                    <div 
+                        className="flex items-center space-x-2 cursor-pointer" 
+                        onClick={() => navigate('/')}
+                    >
+                        <svg className="w-8 h-8 text-[#4BBEBB]" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12.5 7.5C11.67 7.5 11 8.17 11 9V9.5C11 9.78 10.78 10 10.5 10H8C7.45 10 7 10.45 7 11C7 11.55 7.45 12 8 12H9C9.55 12 10 12.45 10 13V15C10 15.55 10.45 16 11 16C11.55 16 12 15.55 12 15V13C12 12.45 12.45 12 13 12H15C15.55 12 16 11.55 16 11C16 10.45 15.55 10 15 10H14C13.45 10 13 9.55 13 9V7.5C13 6.95 12.55 6.5 12 6.5C11.45 6.5 11 6.95 11 7.5V7.5Z" />
+                        </svg>
+                        <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]">ReflectIQ</span>
+                    </div>
+                </div>
+
+                <h1 className="
+                    text-4xl font-extrabold text-center mb-10 
+                    bg-clip-text text-transparent 
+                    bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]
+                ">
+                    {isLogin ? 'Welcome Back' : 'Create Your Account'}
+                </h1>
+
+                <div className="flex mb-8 bg-gray-800 p-1 rounded-xl shadow-inner shadow-gray-900/50">
+                    <button
+                        type="button"
+                        onClick={() => toggleAuthMode('login')}
+                        className={`w-1/2 py-2 text-md font-semibold rounded-lg transition-all duration-300 ${
+                            isLogin 
+                                ? 'bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-black shadow-md shadow-cyan-500/30'
+                                : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                        }`}
+                    >
+                        Log In
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => toggleAuthMode('signup')}
+                        className={`w-1/2 py-2 text-md font-semibold rounded-lg transition-all duration-300 ${
+                            !isLogin 
+                                ? 'bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-black shadow-md shadow-cyan-500/30'
+                                : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                        }`}
+                    >
+                        Sign Up
+                    </button>
+                </div>
+
+                {/* Login Form */}
+                {isLogin ? (
+                    <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-5">
+                        
+                        {/* Email Input */}
+                        <div>
+                            <input 
+                                type="email" 
+                                placeholder="Email Address" 
+                                aria-label="Email Address"
+                                {...loginForm.register('email', {
+                                    required: 'Email is required',
+                                    pattern: {
+                                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                        message: 'Invalid email address'
+                                    }
+                                })}
+                                className="w-full p-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-[#4BBEBB] focus:border-transparent outline-none transition duration-200 shadow-inner"
+                            />
+                            {loginForm.formState.errors.email && (
+                                <p className="text-red-400 text-sm mt-1">{loginForm.formState.errors.email.message}</p>
+                            )}
+                        </div>
+                        
+                        {/* Password Input */}
+                        <div>
+                            <input 
+                                type="password" 
+                                placeholder="Password" 
+                                aria-label="Password"
+                                {...loginForm.register('password', {
+                                    required: 'Password is required',
+                                    minLength: {
+                                        value: 6,
+                                        message: 'Password must be at least 6 characters'
+                                    }
+                                })}
+                                className="w-full p-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-[#4BBEBB] focus:border-transparent outline-none transition duration-200 shadow-inner"
+                            />
+                            {loginForm.formState.errors.password && (
+                                <p className="text-red-400 text-sm mt-1">{loginForm.formState.errors.password.message}</p>
+                            )}
+                        </div>
+                        
+                        {/* Submit Button */}
+                        <button 
+                            type="submit" 
+                            className="
+                                w-full py-3 mt-6 text-xl font-extrabold text-black 
+                                bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]
+                                shadow-xl shadow-cyan-500/30 
+                                hover:shadow-cyan-400/50 
+                                transition-all duration-300 hover:scale-[1.01]
+                                rounded-lg
+                            "
+                        >
+                            Log In
+                        </button>
+                    </form>
+                ) : (
+                    /* Signup Form */
+                    <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-5">
+                        
+                        {/* Email Input */}
+                        <div>
+                            <input 
+                                type="email" 
+                                placeholder="Email Address" 
+                                aria-label="Email Address"
+                                {...signupForm.register('email', {
+                                    required: 'Email is required',
+                                    pattern: {
+                                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                        message: 'Invalid email address'
+                                    }
+                                })}
+                                className="w-full p-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-[#4BBEBB] focus:border-transparent outline-none transition duration-200 shadow-inner"
+                            />
+                            {signupForm.formState.errors.email && (
+                                <p className="text-red-400 text-sm mt-1">{signupForm.formState.errors.email.message}</p>
+                            )}
+                        </div>
+                        
+                        {/* Password Input */}
+                        <div>
+                            <input 
+                                type="password" 
+                                placeholder="Password" 
+                                aria-label="Password"
+                                {...signupForm.register('password', {
+                                    required: 'Password is required',
+                                    minLength: {
+                                        value: 6,
+                                        message: 'Password must be at least 6 characters'
+                                    }
+                                })}
+                                className="w-full p-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-[#4BBEBB] focus:border-transparent outline-none transition duration-200 shadow-inner"
+                            />
+                            {signupForm.formState.errors.password && (
+                                <p className="text-red-400 text-sm mt-1">{signupForm.formState.errors.password.message}</p>
+                            )}
+                        </div>
+
+                        {/* Confirm Password */}
+                        <div>
+                            <input 
+                                type="password" 
+                                placeholder="Confirm Password" 
+                                aria-label="Confirm Password"
+                                {...signupForm.register('confirmPassword', {
+                                    required: 'Please confirm your password',
+                                    validate: (value: string) => {
+                                        const { password } = signupForm.getValues();
+                                        return value === password || 'Passwords do not match';
+                                    }
+                                })}
+                                className="w-full p-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-[#4BBEBB] focus:border-transparent outline-none transition duration-200 shadow-inner"
+                            />
+                            {signupForm.formState.errors.confirmPassword && (
+                                <p className="text-red-400 text-sm mt-1">{signupForm.formState.errors.confirmPassword.message}</p>
+                            )}
+                        </div>
+                        
+                        {/* Submit Button */}
+                        <button 
+                            type="submit" 
+                            className="
+                                w-full py-3 mt-6 text-xl font-extrabold text-black 
+                                bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]
+                                shadow-xl shadow-cyan-500/30 
+                                hover:shadow-cyan-400/50 
+                                transition-all duration-300 hover:scale-[1.01]
+                                rounded-lg
+                            "
+                        >
+                            Sign Up
+                        </button>
+                    </form>
+                )}
+
+                <p className="text-center text-sm mt-6 text-gray-500">
+                    {isLogin 
+                        ? "Don't have an account? "
+                        : "Already have an account? "
+                    }
+                    <button 
+                        type="button" 
+                        onClick={() => setIsLogin(!isLogin)}
+                        className="text-[#4BBEBB] font-medium hover:text-cyan-400 transition-colors"
+                    >
+                        {isLogin ? 'Sign Up' : 'Log In'}
+                    </button>
+                </p>
+
+            </div>
+        </div>
+    );
+};
+
+export default AuthPage;
