@@ -7,9 +7,12 @@ import {
   getGoalById,
   updateGoalStatus,
   deleteGoal,
+  createTeamGoal,
+  getTeamGoals,
 } from "../../services/goals";
 import { generateEmbedding } from "../../services/embeddings";
 import { searchEntries } from "../../services/database";
+import { isTeamMember } from "../../services/teams";
 
 const router = Router();
 
@@ -196,6 +199,96 @@ router.delete("/:id", async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error("[GOALS] Delete error:", error);
     res.status(500).json({ error: error.message || "Failed to delete goal" });
+  }
+});
+
+// ===== TEAM GOAL ROUTES =====
+
+/**
+ * POST /goals/team/:teamId - Create team goal
+ */
+router.post("/team/:teamId", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { teamId } = req.params;
+    const { title, description, deadline } = req.body;
+
+    if (!title) {
+      return res.status(400).json({ error: "Title is required" });
+    }
+
+    if (!teamId) {
+      return res.status(400).json({ error: "Team ID is required" });
+    }
+
+    // Check if user is team member
+    const isMember = await isTeamMember(userId, teamId);
+    if (!isMember) {
+      return res.status(403).json({ error: "Not a team member" });
+    }
+
+    const goal = await createTeamGoal(
+      userId,
+      teamId,
+      title,
+      description || "",
+      deadline
+    );
+
+    res.status(201).json({
+      message: "Team goal created successfully",
+      goal: {
+        id: goal.id,
+        title: goal.title,
+      },
+    });
+  } catch (error: any) {
+    console.error("[GOALS] Create team goal error:", error);
+    res
+      .status(500)
+      .json({ error: error.message || "Failed to create team goal" });
+  }
+});
+
+/**
+ * GET /goals/team/:teamId - List team goals
+ */
+router.get("/team/:teamId", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { teamId } = req.params;
+
+    if (!teamId) {
+      return res.status(400).json({ error: "Team ID is required" });
+    }
+
+    // Check if user is team member
+    const isMember = await isTeamMember(userId, teamId);
+    if (!isMember) {
+      return res.status(403).json({ error: "Not a team member" });
+    }
+
+    const goals = await getTeamGoals(teamId);
+
+    res.json({
+      teamId,
+      goals: goals.map((g: any) => ({
+        id: g.id,
+        title: g.title,
+        description: g.description,
+        deadline: g.deadline,
+        completed: g.completed,
+        createdAt: g.created_at,
+      })),
+      total: goals.length,
+      completed: goals.filter((g: any) => g.completed).length,
+      active: goals.filter((g: any) => !g.completed).length,
+    });
+  } catch (error: any) {
+    console.error("[GOALS] List team goals error:", error);
+    res
+      .status(500)
+      .json({ error: error.message || "Failed to list team goals" });
   }
 });
 

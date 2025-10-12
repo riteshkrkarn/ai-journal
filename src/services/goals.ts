@@ -128,3 +128,50 @@ export async function deleteGoal(
     throw new Error(`Failed to delete goal: ${error.message}`);
   }
 }
+
+/**
+ * Create team goal
+ */
+export async function createTeamGoal(
+  userId: string,
+  teamId: string,
+  title: string,
+  description: string,
+  deadline: string
+) {
+  const { data, error } = await supabase
+    .from("goals")
+    .insert({
+      user_id: userId,
+      team_id: teamId,
+      title,
+      description,
+      deadline,
+      completed: false,
+    })
+    .select("id, title")
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to create team goal: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * Get all team goals
+ */
+export async function getTeamGoals(teamId: string) {
+  const { data, error } = await supabase
+    .from("goals")
+    .select("id, title, description, deadline, completed, created_at")
+    .eq("team_id", teamId)
+    .order("deadline", { ascending: true });
+
+  if (error) {
+    throw new Error(`Failed to get team goals: ${error.message}`);
+  }
+
+  return data || [];
+}

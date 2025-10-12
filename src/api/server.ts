@@ -9,6 +9,7 @@ import goalsRoutes from "./routes/goals";
 import calendarRoutes from "./routes/calender";
 import { setupWebSocket } from "./websocket/websockets.ts";
 import aiRoutes from "./routes/ai";
+import teamRoutes from "./routes/teams";
 
 dotenv.config();
 
@@ -39,6 +40,8 @@ app.use("/auth", authRoutes);
 app.use("/entries", entriesRoutes);
 app.use("/goals", goalsRoutes);
 app.use("/calendar", calendarRoutes);
+app.use("/ai", aiRoutes);
+app.use("/teams", teamRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
@@ -62,7 +65,6 @@ const server = createServer(app);
 
 // Setup WebSocket
 setupWebSocket(server);
-app.use("/ai", aiRoutes);
 
 // Start server
 server.listen(PORT, () => {
@@ -75,6 +77,8 @@ server.listen(PORT, () => {
 📔 Entries:    http://localhost:${PORT}/entries/*
 🎯 Goals:      http://localhost:${PORT}/goals/*
 📅 Calendar:   http://localhost:${PORT}/calendar/*
+🤖 AI Chat:    http://localhost:${PORT}/ai/*
+👥 Teams:      http://localhost:${PORT}/teams/*
 💬 WebSocket:  ws://localhost:${PORT}/ws
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   `);

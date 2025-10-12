@@ -10,7 +10,7 @@ import {
 import {
   createCalendarEvent,
   listUpcomingEvents,
-} from "../../services/calender";
+} from "../../services/calendar";
 
 const router = Router();
 
