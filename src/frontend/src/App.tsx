@@ -5,6 +5,7 @@ import ChatBot from './pages/ChatBot';
 import TeamSpace from './pages/TeamSpace';
 
 
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const isAuthenticated = true; 
     if (!isAuthenticated) {
@@ -55,9 +56,6 @@ export default function App() {
                 </ProtectedRoute>
             } 
         />
-        
-        {/* If the user is authenticated, redirecting root to dashboard is a common pattern */}
-        {/* <Route path="/" element={<Navigate to="/dashboard" replace />} /> */}
       </Routes>
     </BrowserRouter>
   );
