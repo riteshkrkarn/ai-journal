@@ -55,9 +55,6 @@ export default function App() {
                 </ProtectedRoute>
             } 
         />
-        
-        {/* If the user is authenticated, redirecting root to dashboard is a common pattern */}
-        {/* <Route path="/" element={<Navigate to="/dashboard" replace />} /> */}
       </Routes>
     </BrowserRouter>
   );
