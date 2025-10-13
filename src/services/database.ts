@@ -172,3 +172,73 @@ export async function getEntriesInRange(
 
   return data || [];
 }
+
+/**
+ * Save team entry
+ */
+export async function saveTeamEntry(
+  userId: string,
+  teamId: string,
+  date: string,
+  content: string,
+  embedding: number[]
+): Promise<void> {
+  const { error } = await supabase.from("entries").insert({
+    user_id: userId,
+    team_id: teamId,
+    date,
+    content,
+    embedding: JSON.stringify(embedding),
+  });
+
+  if (error) {
+    throw new Error(`Failed to save team entry: ${error.message}`);
+  }
+}
+
+/**
+ * Get team entries
+ */
+export async function getTeamEntries(teamId: string) {
+  const { data, error } = await supabase
+    .from("entries")
+    .select("id, date, content, embedding")
+    .eq("team_id", teamId)
+    .order("date", { ascending: false });
+
+  if (error) {
+    throw new Error(`Failed to get team entries: ${error.message}`);
+  }
+
+  return data || [];
+}
+
+/**
+ * Search team entries
+ */
+export async function searchTeamEntries(
+  teamId: string,
+  queryEmbedding: number[],
+  topK: number = 3
+) {
+  const entries = await getTeamEntries(teamId);
+
+  if (entries.length === 0) {
+    return [];
+  }
+
+  const results = entries
+    .map((entry) => {
+      const embedding = JSON.parse(entry.embedding) as number[];
+      const similarity = cosineSimilarity(queryEmbedding, embedding);
+      return {
+        date: entry.date,
+        content: entry.content,
+        similarity,
+      };
+    })
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, topK);
+
+  return results;
+}

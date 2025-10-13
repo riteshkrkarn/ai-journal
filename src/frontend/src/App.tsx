@@ -1,24 +1,64 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import ChatBot from './pages/ChatBot';
 import TeamSpace from './pages/TeamSpace';
+
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+    const isAuthenticated = true; 
+    if (!isAuthenticated) {
+        return <Navigate to="/auth" replace />;
+    }
+    return <>{children}</>;
+}
+
+function DashboardPage() {
+    return (
+        <div className="min-h-screen bg-gray-950 text-white p-8">
+            <ChatBot />
+        </div>
+    );
+}
+
+
 const handleTeamBack = () => {
-  // Navigate to home or chat page
   console.log('Going back from team space');
 };
-function App() {
+
+export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Landing Page Route (usually the root path) */}
         <Route path="/" element={<LandingPage />} />
-        <Route path="/auth" element={<AuthPage />} />
-        <Route path="/dashboard" element={<ChatBot />} />
-        <Route path="/teamspace" element={<TeamSpace onBack={handleTeamBack}/>} />
 
+        {/* Auth routes - AuthPage handles both login and signup */}
+        <Route path="/auth" element={<AuthPage />} />
+        
+        {/* Protected routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              {/* Using DashboardPage as a wrapper for ChatBot or main content */}
+              <DashboardPage /> 
+            </ProtectedRoute>
+          }
+        />
+
+        <Route 
+            path="/teamspace" 
+            element={
+                <ProtectedRoute>
+                    <TeamSpace onBack={handleTeamBack} />
+                </ProtectedRoute>
+            } 
+        />
+        
+        {/* If the user is authenticated, redirecting root to dashboard is a common pattern */}
+        {/* <Route path="/" element={<Navigate to="/dashboard" replace />} /> */}
       </Routes>
     </BrowserRouter>
   );
 }
-
-export default App;
