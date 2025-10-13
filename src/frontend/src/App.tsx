@@ -5,6 +5,7 @@ import ChatBot from './pages/ChatBot';
 import TeamSpace from './pages/TeamSpace';
 
 
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const isAuthenticated = true; 
     if (!isAuthenticated) {
