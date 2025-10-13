@@ -35,8 +35,8 @@ export async function journalAgent(userId: string) {
   const saveJournalEntry = new FunctionTool(
     async (date: string, content: string) => {
       const embedding = await generateEmbedding(content);
-      await saveEntry(userId, date, content, embedding);
-      return { result: "Entry saved!" };
+      const result = await saveEntry(userId, date, content, embedding);
+      return { result };
     },
     {
       name: "saveJournalEntry",
