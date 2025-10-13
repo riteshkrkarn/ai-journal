@@ -1,11 +1,11 @@
 // First, install React Hook Form:
 // npm install react-hook-form
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import type { SubmitHandler } from "react-hook-form";
-import { login, register } from "../utils/auth";
+import { login, register, hasAuth } from "../utils/auth";
 
 // Types for form data
 type LoginFormData = {
@@ -24,6 +24,13 @@ const AuthPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Redirect to dashboard if already authenticated
+  useEffect(() => {
+    if (hasAuth()) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [navigate]);
 
   // Separate forms for login and signup
   const loginForm = useForm<LoginFormData>();

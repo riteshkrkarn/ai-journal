@@ -59,24 +59,38 @@ export async function journalAgent(userId: string) {
 
   const searchJournalEntries = new FunctionTool(
     async (query: string) => {
-      const queryEmbedding = await generateEmbedding(query);
-      const results = await searchEntries(userId, queryEmbedding, 3);
+      try {
+        const queryEmbedding = await generateEmbedding(query);
+        const results = await searchEntries(userId, queryEmbedding, 3);
 
-      if (results.length === 0) {
-        return { entries: "No matching entries found." };
+        if (results.length === 0) {
+          return {
+            result:
+              "No journal entries found matching your search. You may need to write some entries first before searching.",
+            entries: [],
+          };
+        }
+
+        return {
+          result: `Found ${results.length} matching entries.`,
+          entries: results.map((r) => ({
+            date: r.date,
+            content: r.content,
+            relevance: r.similarity.toFixed(2),
+          })),
+        };
+      } catch (error: any) {
+        console.error("[searchJournalEntries] Error:", error);
+        return {
+          result: `Search completed, but encountered an issue: ${error.message}`,
+          entries: [],
+        };
       }
-
-      return {
-        entries: results.map((r) => ({
-          date: r.date,
-          content: r.content,
-          relevance: r.similarity.toFixed(2),
-        })),
-      };
     },
     {
       name: "searchJournalEntries",
-      description: "Search journal entries by meaning or topic.",
+      description:
+        "Search journal entries by meaning or topic. Returns entries with similarity scores.",
     }
   );
 
@@ -129,7 +143,7 @@ export async function journalAgent(userId: string) {
     async (title: string, description: string, deadline: string) => {
       const goal = await createGoal(userId, title, description, deadline);
       return {
-        result: `Goal created: "${goal.title}" (ID: ${goal.id})`,
+        result: `Goal created: "${goal.title}". You can check it in the Goals page.`,
         goalId: goal.id,
       };
     },
@@ -411,7 +425,9 @@ TEAMS: listUserTeams (show first!), saveTeamEntry, searchTeamEntries, setTeamGoa
 CALENDAR: addToCalendar, listUpcomingEvents
 
 For teams: Always use listUserTeams first to get team IDs, then use team operations.
-For calendar: Parse dates naturally (tomorrow, next Monday, 2024-10-15).`
+For calendar: Parse dates naturally (tomorrow, next Monday, 2024-10-15).
+
+IMPORTANT: If a search returns no results, explain to the user that they need to write some journal entries first. Don't say the tool is "not working" - it works correctly, there's just no data to search yet. Be helpful and guide them to create entries first.`
     )
     .withTools(
       saveJournalEntry,
