@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, BookOpen, Search, Users, Calendar, User, Settings, Menu, X } from 'lucide-react';
 import logoImg from '../assets/logo-img.png';
-import TeamSpace from './TeamSpace'; // Import the TeamSpace component
 
 const Logo: React.FC = () => (
     <div className="flex items-center space-x-2">
@@ -23,8 +22,7 @@ interface Message {
 const ChatBot: React.FC = () => {
     const [inputMessage, setInputMessage] = useState('');
     const [messages, setMessages] = useState<Message[]>([]);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [currentPage, setCurrentPage] = useState<'chat' | 'team'>('chat');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Default closed on mobile
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -116,25 +114,6 @@ const ChatBot: React.FC = () => {
         }
     };
 
-    // Add function to handle navigation
-    const navigateToPage = (page: 'chat' | 'team') => {
-        setCurrentPage(page);
-        // Close sidebar on mobile when navigating
-        if (window.innerWidth < 768) {
-            setIsSidebarOpen(false);
-        }
-    };
-
-    // Callback function to pass to TeamSpace for going back
-    const handleBackToChat = () => {
-        setCurrentPage('chat');
-    };
-
-    // Conditionally render based on currentPage
-    if (currentPage === 'team') {
-        return <TeamSpace onBack={handleBackToChat} />;
-    }
-
     return (
         <div className="h-screen w-full bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex font-['Inter',sans-serif] overflow-hidden">
             
@@ -148,23 +127,17 @@ const ChatBot: React.FC = () => {
 
                 {/* Navigation */}
                 <div className="flex-1 p-3 sm:p-4 space-y-1 sm:space-y-2 overflow-y-auto">
-                    <button 
-                        onClick={() => navigateToPage('chat')}
-                        className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-[#016BFF]/10 to-[#4BBEBB]/10 border border-[#4BBEBB]/30 hover:border-[#4BBEBB]/50 transition-all"
-                    >
+                    <button className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-[#016BFF]/10 to-[#4BBEBB]/10 border border-[#4BBEBB]/30 hover:border-[#4BBEBB]/50 transition-all">
                         <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-[#4BBEBB] flex-shrink-0" />
                         <span className="text-sm sm:text-base font-medium bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] truncate">Journal / Chat</span>
                     </button>
 
                     <button className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl hover:bg-gray-800/50 transition-all group">
                         <Search className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-[#4BBEBB] flex-shrink-0" />
-                        <span className="text-sm sm:text-base font-medium text-gray-400 group-hover:bg-clip-text group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-[#016BFF] group-hover:to-[#4BBEBB] truncate">Goal</span>
+                        <span className="text-sm sm:text-base font-medium text-gray-400 group-hover:bg-clip-text group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-[#016BFF] group-hover:to-[#4BBEBB] truncate">Goals</span>
                     </button>
 
-                    <button 
-                        onClick={() => navigateToPage('team')}
-                        className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl hover:bg-gray-800/50 transition-all group"
-                    >
+                    <button className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl hover:bg-gray-800/50 transition-all group">
                         <Users className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-[#4BBEBB] flex-shrink-0" />
                         <span className="text-sm sm:text-base font-medium text-gray-400 group-hover:bg-clip-text group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-[#016BFF] group-hover:to-[#4BBEBB] truncate">Team</span>
                     </button>
