@@ -3,6 +3,7 @@ import LandingPage from "./pages/LandingPage";
 import AuthPage from "./pages/AuthPage";
 import ChatBot from "./pages/ChatBot";
 import TeamSpace from "./pages/TeamSpace";
+import CreateJoinTeam from "./pages/CreateJoinTeam";
 import { hasAuth } from "./utils/auth";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -23,6 +24,7 @@ function DashboardPage() {
 
 const handleTeamBack = () => {
   console.log("Going back from team space");
+  window.location.href = "/dashboard";
 };
 
 export default function App() {
@@ -54,9 +56,16 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/create-join-team"
+          element={
+            <ProtectedRoute>
+              <CreateJoinTeam />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
-
-
     </BrowserRouter>
   );
 }
