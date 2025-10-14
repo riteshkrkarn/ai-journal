@@ -19,7 +19,7 @@ function Navbar() {
           variant="ghost" 
           className="text-white hover:text-[#4BBEBB]"
         >
-          Log In
+          Sign In
         </Button>
         <Button 
           onClick={() => navigate('/auth')}
