@@ -1,4 +1,5 @@
-import { AgentBuilder, FunctionTool } from "@iqai/adk";
+import { AgentBuilder, FunctionTool, createTool } from "@iqai/adk";
+import { z } from "zod";
 import * as dotenv from "dotenv";
 import {
   saveEntry,
@@ -32,71 +33,95 @@ export async function journalAgent(userId: string) {
 
   // ===== JOURNAL TOOLS =====
 
-  const saveJournalEntry = new FunctionTool(
-    async (date: string, content: string) => {
+  /**
+   * Save a journal entry for a specific date
+   * @param date - The date in YYYY-MM-DD format
+   * @param content - The journal entry content
+   */
+  const saveJournalEntry = createTool({
+    name: "saveJournalEntry",
+    description: "Add a new journal entry for a specific date.",
+    schema: z.object({
+      date: z.string().describe("The date in YYYY-MM-DD format"),
+      content: z.string().describe("The journal entry content"),
+    }),
+    fn: async ({ date, content }: { date: string; content: string }) => {
       const embedding = await generateEmbedding(content);
       const result = await saveEntry(userId, date, content, embedding);
       return { result };
     },
-    {
-      name: "saveJournalEntry",
-      description: "Add a new journal entry for a specific date.",
-    }
-  );
+  });
 
-  const fetchJournalEntry = new FunctionTool(
-    async (date: string) => {
+  /**
+   * Fetch a journal entry for a specific date
+   * @param date - The date in YYYY-MM-DD format
+   */
+  const fetchJournalEntry = createTool({
+    name: "fetchJournalEntry",
+    description: "Read your journal entry for a specific date.",
+    schema: z.object({
+      date: z.string().describe("The date in YYYY-MM-DD format"),
+    }),
+    fn: async ({ date }: { date: string }) => {
       const entry = await fetchEntryByDate(userId, date);
       return entry
         ? { content: entry.content }
         : { content: "No entry found for this date." };
     },
-    {
-      name: "fetchJournalEntry",
-      description: "Read your journal entry for a specific date.",
-    }
-  );
+  });
 
-  const searchJournalEntries = new FunctionTool(
-    async (query: string) => {
-      try {
-        const queryEmbedding = await generateEmbedding(query);
-        const results = await searchEntries(userId, queryEmbedding, 3);
+  /**
+   * Search journal entries by semantic meaning
+   * @param query - The search query
+   */
+  const searchJournalEntries = createTool({
+    name: "searchJournalEntries",
+    description: "Search journal entries by meaning or topic.",
+    schema: z.object({
+      query: z
+        .string()
+        .describe("The search query to find relevant journal entries"),
+    }),
+    fn: async ({ query }: { query: string }) => {
+      const queryEmbedding = await generateEmbedding(query);
+      const results = await searchEntries(userId, queryEmbedding, 3);
 
-        if (results.length === 0) {
-          return {
-            result:
-              "No journal entries found matching your search. You may need to write some entries first before searching.",
-            entries: [],
-          };
-        }
-
-        return {
-          result: `Found ${results.length} matching entries.`,
-          entries: results.map((r) => ({
-            date: r.date,
-            content: r.content,
-            relevance: r.similarity.toFixed(2),
-          })),
-        };
-      } catch (error: any) {
-        console.error("[searchJournalEntries] Error:", error);
-        return {
-          result: `Search completed, but encountered an issue: ${error.message}`,
-          entries: [],
-        };
+      if (results.length === 0) {
+        return "No journal entries found matching your search.";
       }
-    },
-    {
-      name: "searchJournalEntries",
-      description:
-        "Search journal entries by meaning or topic. Returns entries with similarity scores.",
-    }
-  );
 
-  const getSummary = new FunctionTool(
-    async (startDate: string, endDate: string, topic?: string) => {
-      const entries = await getEntriesInRange(userId, startDate, endDate);
+      const formattedResults = results
+        .map(
+          (r, i) =>
+            `${i + 1}. Date: ${r.date}\nContent: ${
+              r.content
+            }\nRelevance: ${r.similarity.toFixed(2)}`
+        )
+        .join("\n\n");
+
+      return `Found ${results.length} matching entries:\n\n${formattedResults}`;
+    },
+  });
+
+  /**
+   * Get a summary of journal entries for a date range
+   * @param startDate - Start date (optional, defaults to 7 days ago)
+   * @param endDate - End date (optional, defaults to today)
+   * @param topic - Optional topic to filter entries
+   */
+  const getSummary = createTool({
+    name: "getSummary",
+    description:
+      "Get a summary of journal entries for a date range. Defaults to last 7 days if no dates provided.",
+    fn: async (args: any) => {
+      const { startDate, endDate, topic } = args || {};
+      const start: string = (startDate ||
+        new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0])!;
+      const end: string = (endDate || today)!;
+
+      const entries = await getEntriesInRange(userId, start, end);
 
       if (entries.length === 0) {
         return { summary: "No entries found in this date range." };
@@ -127,34 +152,52 @@ export async function journalAgent(userId: string) {
         .join("\n\n");
 
       return {
-        summary: `Entries from ${startDate} to ${endDate}:\n\n${entriesText}`,
+        summary: `Entries from ${start} to ${end}:\n\n${entriesText}`,
         entryCount: filteredEntries.length,
       };
     },
-    {
-      name: "getSummary",
-      description: "Get a summary of journal entries for a date range.",
-    }
-  );
+  });
 
   // ===== GOAL TOOLS =====
 
-  const setGoal = new FunctionTool(
-    async (title: string, description: string, deadline: string) => {
+  /**
+   * Create a new goal
+   * @param title - Goal title
+   * @param description - Goal description
+   * @param deadline - Goal deadline date
+   */
+  const setGoal = createTool({
+    name: "setGoal",
+    description: "Create a new goal with title, description, and deadline.",
+    schema: z.object({
+      title: z.string().describe("The goal title"),
+      description: z.string().describe("The goal description"),
+      deadline: z.string().describe("The deadline date in YYYY-MM-DD format"),
+    }),
+    fn: async ({
+      title,
+      description,
+      deadline,
+    }: {
+      title: string;
+      description: string;
+      deadline: string;
+    }) => {
       const goal = await createGoal(userId, title, description, deadline);
       return {
         result: `Goal created: "${goal.title}". You can check it in the Goals page.`,
         goalId: goal.id,
       };
     },
-    {
-      name: "setGoal",
-      description: "Create a new goal with title, description, and deadline.",
-    }
-  );
+  });
 
-  const listGoals = new FunctionTool(
-    async () => {
+  /**
+   * List all goals for the user
+   */
+  const listGoals = createTool({
+    name: "listGoals",
+    description: "Show all goals.",
+    fn: async () => {
       const goals = await getAllGoals(userId);
 
       if (goals.length === 0) {
@@ -172,14 +215,19 @@ export async function journalAgent(userId: string) {
         totalGoals: goals.length,
       };
     },
-    {
-      name: "listGoals",
-      description: "Show all goals.",
-    }
-  );
+  });
 
-  const checkGoalProgress = new FunctionTool(
-    async (goalId: string) => {
+  /**
+   * Check progress on a specific goal
+   * @param goalId - The goal ID
+   */
+  const checkGoalProgress = createTool({
+    name: "checkGoalProgress",
+    description: "Check progress on a specific goal.",
+    schema: z.object({
+      goalId: z.string().describe("The goal ID"),
+    }),
+    fn: async ({ goalId }: { goalId: string }) => {
       const goal = await getGoalById(userId, goalId);
 
       if (!goal) {
@@ -201,29 +249,43 @@ export async function journalAgent(userId: string) {
             : "No mentions yet.",
       };
     },
-    {
-      name: "checkGoalProgress",
-      description: "Check progress on a specific goal.",
-    }
-  );
+  });
 
-  const updateGoalStatusTool = new FunctionTool(
-    async (goalId: string, completed: boolean) => {
+  /**
+   * Update goal status
+   * @param goalId - The goal ID
+   * @param completed - Whether the goal is completed
+   */
+  const updateGoalStatusTool = createTool({
+    name: "updateGoalStatus",
+    description: "Mark a goal as completed or incomplete.",
+    schema: z.object({
+      goalId: z.string().describe("The goal ID"),
+      completed: z.boolean().describe("Whether the goal is completed"),
+    }),
+    fn: async ({
+      goalId,
+      completed,
+    }: {
+      goalId: string;
+      completed: boolean;
+    }) => {
       await updateGoalStatus(userId, goalId, completed);
       return {
         result: completed ? "Goal completed!" : "Goal marked incomplete.",
       };
     },
-    {
-      name: "updateGoalStatus",
-      description: "Mark a goal as completed or incomplete.",
-    }
-  );
+  });
 
   // ===== TEAM TOOLS =====
 
-  const listUserTeams = new FunctionTool(
-    async () => {
+  /**
+   * List all teams the user is in
+   */
+  const listUserTeams = createTool({
+    name: "listUserTeams",
+    description: "List all teams the user is in.",
+    fn: async () => {
       const teams = await getUserTeams(userId);
 
       if (teams.length === 0) {
@@ -238,14 +300,32 @@ export async function journalAgent(userId: string) {
         count: teams.length,
       };
     },
-    {
-      name: "listUserTeams",
-      description: "List all teams the user is in.",
-    }
-  );
+  });
 
-  const saveTeamEntryTool = new FunctionTool(
-    async (teamId: string, date: string, content: string) => {
+  /**
+   * Save a journal entry to a team
+   * @param teamId - The team ID
+   * @param date - The date in YYYY-MM-DD format
+   * @param content - The journal entry content
+   */
+  const saveTeamEntryTool = createTool({
+    name: "saveTeamEntry",
+    description:
+      "Save a journal entry to a team. Requires teamId, date, content.",
+    schema: z.object({
+      teamId: z.string().describe("The team ID"),
+      date: z.string().describe("The date in YYYY-MM-DD format"),
+      content: z.string().describe("The journal entry content"),
+    }),
+    fn: async ({
+      teamId,
+      date,
+      content,
+    }: {
+      teamId: string;
+      date: string;
+      content: string;
+    }) => {
       const isMember = await isTeamMember(userId, teamId);
       if (!isMember) {
         return { error: "Not a team member" };
@@ -255,15 +335,21 @@ export async function journalAgent(userId: string) {
       await saveTeamEntry(userId, teamId, date, content, embedding);
       return { result: "Team entry saved!" };
     },
-    {
-      name: "saveTeamEntry",
-      description:
-        "Save a journal entry to a team. Requires teamId, date, content.",
-    }
-  );
+  });
 
-  const searchTeamEntriesTool = new FunctionTool(
-    async (teamId: string, query: string) => {
+  /**
+   * Search team journal entries
+   * @param teamId - The team ID
+   * @param query - The search query
+   */
+  const searchTeamEntriesTool = createTool({
+    name: "searchTeamEntries",
+    description: "Search team journal entries. Requires teamId and query.",
+    schema: z.object({
+      teamId: z.string().describe("The team ID"),
+      query: z.string().describe("The search query"),
+    }),
+    fn: async ({ teamId, query }: { teamId: string; query: string }) => {
       const isMember = await isTeamMember(userId, teamId);
       if (!isMember) {
         return { error: "Not a team member" };
@@ -284,19 +370,36 @@ export async function journalAgent(userId: string) {
         })),
       };
     },
-    {
-      name: "searchTeamEntries",
-      description: "Search team journal entries. Requires teamId and query.",
-    }
-  );
+  });
 
-  const setTeamGoal = new FunctionTool(
-    async (
-      teamId: string,
-      title: string,
-      description: string,
-      deadline: string
-    ) => {
+  /**
+   * Create a goal for a team
+   * @param teamId - The team ID
+   * @param title - Goal title
+   * @param description - Goal description
+   * @param deadline - Goal deadline
+   */
+  const setTeamGoal = createTool({
+    name: "setTeamGoal",
+    description:
+      "Create a goal for a team. Requires teamId, title, description, deadline.",
+    schema: z.object({
+      teamId: z.string().describe("The team ID"),
+      title: z.string().describe("The goal title"),
+      description: z.string().describe("The goal description"),
+      deadline: z.string().describe("The deadline date in YYYY-MM-DD format"),
+    }),
+    fn: async ({
+      teamId,
+      title,
+      description,
+      deadline,
+    }: {
+      teamId: string;
+      title: string;
+      description: string;
+      deadline: string;
+    }) => {
       const isMember = await isTeamMember(userId, teamId);
       if (!isMember) {
         return { error: "Not a team member" };
@@ -314,15 +417,19 @@ export async function journalAgent(userId: string) {
         goalId: goal.id,
       };
     },
-    {
-      name: "setTeamGoal",
-      description:
-        "Create a goal for a team. Requires teamId, title, description, deadline.",
-    }
-  );
+  });
 
-  const listTeamGoals = new FunctionTool(
-    async (teamId: string) => {
+  /**
+   * List all team goals
+   * @param teamId - The team ID
+   */
+  const listTeamGoals = createTool({
+    name: "listTeamGoals",
+    description: "List all team goals. Requires teamId.",
+    schema: z.object({
+      teamId: z.string().describe("The team ID"),
+    }),
+    fn: async ({ teamId }: { teamId: string }) => {
       const isMember = await isTeamMember(userId, teamId);
       if (!isMember) {
         return { error: "Not a team member" };
@@ -343,21 +450,24 @@ export async function journalAgent(userId: string) {
         })),
       };
     },
-    {
-      name: "listTeamGoals",
-      description: "List all team goals. Requires teamId.",
-    }
-  );
+  });
 
   // ===== CALENDAR TOOLS =====
 
-  const addToCalendar = new FunctionTool(
-    async (
-      title: string,
-      dateStr: string,
-      timeStr: string,
-      description?: string
-    ) => {
+  /**
+   * Add event to Google Calendar
+   * @param title - Event title
+   * @param dateStr - Date string
+   * @param timeStr - Time string
+   * @param description - Optional description
+   */
+  const addToCalendar = createTool({
+    name: "addToCalendar",
+    description:
+      "Add event to Google Calendar. Args: title, dateStr, timeStr, description (optional).",
+    fn: async (args: any) => {
+      const { title, dateStr, timeStr, description } = args;
+
       const hasAccess = await hasCalendarAccess(userId);
       if (!hasAccess) {
         return {
@@ -384,15 +494,15 @@ export async function journalAgent(userId: string) {
         eventLink: event.link,
       };
     },
-    {
-      name: "addToCalendar",
-      description:
-        "Add event to Google Calendar. Args: title, dateStr, timeStr, description (optional).",
-    }
-  );
+  });
 
-  const listCalendarEvents = new FunctionTool(
-    async () => {
+  /**
+   * List upcoming calendar events
+   */
+  const listCalendarEvents = createTool({
+    name: "listUpcomingEvents",
+    description: "List upcoming calendar events.",
+    fn: async () => {
       const hasAccess = await hasCalendarAccess(userId);
       if (!hasAccess) {
         return { error: "Calendar not connected" };
@@ -409,11 +519,7 @@ export async function journalAgent(userId: string) {
         count: events.length,
       };
     },
-    {
-      name: "listUpcomingEvents",
-      description: "List upcoming calendar events.",
-    }
-  );
+  });
 
   return await AgentBuilder.create("journal_agent")
     .withModel("gemini-2.5-flash")
@@ -427,7 +533,13 @@ CALENDAR: addToCalendar, listUpcomingEvents
 For teams: Always use listUserTeams first to get team IDs, then use team operations.
 For calendar: Parse dates naturally (tomorrow, next Monday, 2024-10-15).
 
-IMPORTANT: If a search returns no results, explain to the user that they need to write some journal entries first. Don't say the tool is "not working" - it works correctly, there's just no data to search yet. Be helpful and guide them to create entries first.`
+IMPORTANT ERROR HANDLING:
+- If searchJournalEntries returns an empty array, tell user they need to write entries first
+- If searchJournalEntries returns an error field, explain the technical issue clearly to the user
+- If a tool fails, ALWAYS check the response for an "error" field and communicate it to the user
+- Never say a tool is "unable" or "not working" without explaining the actual error from the response
+
+Be helpful, transparent, and guide users to solutions.`
     )
     .withTools(
       saveJournalEntry,

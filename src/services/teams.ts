@@ -34,7 +34,6 @@ export async function addTeamMember(
   if (error) throw new Error(`Failed to add member: ${error.message}`);
 }
 
-
 /**
  * Get user's teams
  */
@@ -64,13 +63,54 @@ export async function getUserTeams(userId: string) {
  * Get team members
  */
 export async function getTeamMembers(teamId: string) {
-  const { data, error } = await supabaseAdmin
+  // First, get the team's owner_id
+  const { data: teamData, error: teamError } = await supabaseAdmin
+    .from("teams")
+    .select("owner_id")
+    .eq("id", teamId)
+    .single();
+
+  if (teamError) throw new Error(`Failed to get team: ${teamError.message}`);
+
+  const ownerId = teamData?.owner_id;
+
+  // Get all team members
+  const { data: membersData, error: membersError } = await supabaseAdmin
     .from("team_members")
     .select("user_id, joined_at")
     .eq("team_id", teamId);
 
-  if (error) throw new Error(`Failed to get members: ${error.message}`);
-  return data || [];
+  if (membersError)
+    throw new Error(`Failed to get members: ${membersError.message}`);
+
+  if (!membersData || membersData.length === 0) {
+    return [];
+  }
+
+  // Get user details for all members
+  const userIds = membersData.map((m) => m.user_id);
+  const { data: usersData, error: usersError } = await supabaseAdmin
+    .from("users")
+    .select("id, email, full_name")
+    .in("id", userIds);
+
+  if (usersError)
+    throw new Error(`Failed to get user details: ${usersError.message}`);
+
+  // Create a map of user details for quick lookup
+  const usersMap = new Map((usersData || []).map((user) => [user.id, user]));
+
+  // Transform the data to include user details and determine roles
+  return membersData.map((member) => {
+    const userDetails = usersMap.get(member.user_id);
+    return {
+      user_id: member.user_id,
+      joined_at: member.joined_at,
+      role: member.user_id === ownerId ? "owner" : "member",
+      email: userDetails?.email || null,
+      full_name: userDetails?.full_name || null,
+    };
+  });
 }
 
 /**

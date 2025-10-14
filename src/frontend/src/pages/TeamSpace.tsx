@@ -1,17 +1,8 @@
 import React, { useState, useEffect } from "react";
-import {
-  Mail,
-  X,
-  UserPlus,
-  Trash2,
-  Crown,
-  Send,
-  Search,
-  MoreVertical,
-  ArrowLeft,
-} from "lucide-react";
+import { Send, Search, MoreVertical, ArrowLeft, Users } from "lucide-react";
 import { getToken } from "../utils/auth";
 import { useNavigate } from "react-router-dom";
+import TeamInfoPanel from "../components/TeamInfoPanel";
 
 // Types
 interface TeamMember {
@@ -59,33 +50,8 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
   const [pendingEmails, setPendingEmails] = useState<string[]>([]);
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
-
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      senderId: "2",
-      senderName: "Sarah Smith",
-      text: "Hey team! How is everyone doing?",
-      timestamp: "10:15 AM",
-      isCurrentUser: false,
-    },
-    {
-      id: "2",
-      senderId: "1",
-      senderName: "You",
-      text: "Doing great! Working on the new features.",
-      timestamp: "10:20 AM",
-      isCurrentUser: true,
-    },
-    {
-      id: "3",
-      senderId: "3",
-      senderName: "Mike Johnson",
-      text: "Let's schedule a meeting to discuss the roadmap",
-      timestamp: "10:30 AM",
-      isCurrentUser: false,
-    },
-  ]);
+  const [showTeamCode, setShowTeamCode] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
 
   // Fetch teams from API
   useEffect(() => {
@@ -125,7 +91,7 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
                 id: team.id,
                 name: team.name,
                 lastMessage: "No messages yet",
-                timestamp: new Date(team.created_at).toLocaleDateString(),
+                timestamp: team.created_at, // Store ISO string for formatting
                 unreadCount: 0,
                 members: membersData.members.map(
                   (member: {
@@ -186,6 +152,49 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
     ];
     const index = email.charCodeAt(0) % colors.length;
     return colors[index];
+  };
+
+  // Format timestamp - show time if today, date if older
+  const formatTimestamp = (dateString: string): string => {
+    const date = new Date(dateString);
+    const today = new Date();
+
+    // Reset hours/minutes/seconds for date comparison
+    const dateOnly = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
+    const todayOnly = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate()
+    );
+
+    const isToday = dateOnly.getTime() === todayOnly.getTime();
+
+    if (isToday) {
+      // Show time for today's messages
+      return date.toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } else {
+      // Show date for older messages
+      const yesterday = new Date(todayOnly);
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      if (dateOnly.getTime() === yesterday.getTime()) {
+        return "Yesterday";
+      } else {
+        // Show month and day for older messages
+        return date.toLocaleDateString([], {
+          month: "short",
+          day: "numeric",
+        });
+      }
+    }
   };
 
   // Handle send message
@@ -336,7 +345,7 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
             </button>
           )}
           <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] flex items-center justify-center">
-            <UserPlus className="w-12 h-12 text-white" />
+            <Users className="w-12 h-12 text-white" />
           </div>
           <h2 className="text-2xl font-bold text-white mb-3">No Teams Yet</h2>
           <p className="text-gray-400 mb-6">
@@ -423,12 +432,12 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
                       {team.name}
                     </h3>
                     <span className="text-xs text-gray-400 ml-2">
-                      {team.timestamp}
+                      {formatTimestamp(team.timestamp)}
                     </span>
                   </div>
-                  <p className="text-xs sm:text-sm text-gray-400 truncate">
+                  {/* <p className="text-xs sm:text-sm text-gray-400 truncate">
                     {team.lastMessage}
-                  </p>
+                  </p> */}
                 </div>
 
                 {/* Unread Badge */}
@@ -486,50 +495,67 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
 
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdi0yMGgtNjB6IiBmaWxsPSJyZ2JhKDI1NSwgMjU1LCAyNTUsIDAuMDIpIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCBmaWxsPSJ1cmwoI2EpIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIi8+PC9zdmc+')] bg-gray-900/50">
-            <div className="space-y-3 sm:space-y-4 max-w-4xl mx-auto">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${
-                    message.isCurrentUser ? "justify-end" : "justify-start"
-                  }`}
-                >
+            {messages.length === 0 ? (
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center space-y-3 px-4">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-full bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] opacity-20 flex items-center justify-center">
+                    <Send className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+                  </div>
+                  <h3 className="text-base sm:text-lg font-semibold text-white">
+                    No journal entries yet
+                  </h3>
+                  <p className="text-xs sm:text-sm text-gray-400 max-w-sm mx-auto">
+                    Start journaling! Write your thoughts and ask the AI to
+                    fetch team insights anytime.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3 sm:space-y-4 max-w-4xl mx-auto">
+                {messages.map((message) => (
                   <div
-                    className={`max-w-[85%] sm:max-w-[75%] md:max-w-[70%] ${
-                      message.isCurrentUser
-                        ? "ml-4 sm:ml-8 md:ml-12"
-                        : "mr-4 sm:mr-8 md:mr-12"
+                    key={message.id}
+                    className={`flex ${
+                      message.isCurrentUser ? "justify-end" : "justify-start"
                     }`}
                   >
-                    {!message.isCurrentUser && (
-                      <p className="text-xs text-gray-400 mb-1 ml-2">
-                        {message.senderName}
-                      </p>
-                    )}
                     <div
-                      className={`rounded-2xl p-2.5 sm:p-3 ${
+                      className={`max-w-[85%] sm:max-w-[75%] md:max-w-[70%] ${
                         message.isCurrentUser
-                          ? "bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-white"
-                          : "bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 text-white"
+                          ? "ml-4 sm:ml-8 md:ml-12"
+                          : "mr-4 sm:mr-8 md:mr-12"
                       }`}
                     >
-                      <p className="text-xs sm:text-sm leading-relaxed break-words">
-                        {message.text}
-                      </p>
-                      <p
-                        className={`text-xs mt-1 ${
+                      {!message.isCurrentUser && (
+                        <p className="text-xs text-gray-400 mb-1 ml-2">
+                          {message.senderName}
+                        </p>
+                      )}
+                      <div
+                        className={`rounded-2xl p-2.5 sm:p-3 ${
                           message.isCurrentUser
-                            ? "text-white/70"
-                            : "text-gray-500"
+                            ? "bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-white"
+                            : "bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 text-white"
                         }`}
                       >
-                        {message.timestamp}
-                      </p>
+                        <p className="text-xs sm:text-sm leading-relaxed break-words">
+                          {message.text}
+                        </p>
+                        <p
+                          className={`text-xs mt-1 ${
+                            message.isCurrentUser
+                              ? "text-white/70"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {message.timestamp}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Message Input */}
@@ -540,7 +566,7 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
                 value={messageInput}
                 onChange={(e) => setMessageInput(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                placeholder="Type a message..."
+                placeholder="Write your journal entry..."
                 className="flex-1 bg-gray-800/60 border border-gray-700/50 rounded-xl px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4BBEBB]/50"
               />
               <button
@@ -556,198 +582,27 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
       )}
 
       {/* Team Info Panel */}
-      {selectedTeam && showTeamInfo && (
-        <div className="flex-1 bg-[#1a1a1a]/80 backdrop-blur-xl flex flex-col overflow-y-auto">
-          {/* Info Header */}
-          <div className="p-4 sm:p-6 bg-[#1a1a1a]/60 backdrop-blur-xl border-b border-gray-800/50">
-            <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
-              <button
-                onClick={() => setShowTeamInfo(false)}
-                className="p-1.5 sm:p-2 hover:bg-gray-800/50 rounded-lg transition-all"
-              >
-                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
-              </button>
-              <h2 className="text-lg sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]">
-                Team Info
-              </h2>
-            </div>
-
-            {/* Team Avatar & Name */}
-            <div className="text-center">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] flex items-center justify-center text-white font-bold text-xl sm:text-2xl mb-3 sm:mb-4">
-                {getInitials(selectedTeam.name)}
-              </div>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mb-1">
-                {selectedTeam.name}
-              </h3>
-              <p className="text-sm sm:text-base text-gray-400">
-                {selectedTeam.members.length} members
-              </p>
-            </div>
-          </div>
-
-          {/* Add Member Section */}
-          <div className="p-4 sm:p-6 border-b border-gray-800/50">
-            {!isAddingMember ? (
-              <button
-                onClick={() => setIsAddingMember(true)}
-                className="w-full flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-white rounded-xl font-semibold hover:opacity-90 transition-all text-sm sm:text-base"
-              >
-                <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
-                Add Team Members
-              </button>
-            ) : (
-              <div className="bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-3 sm:p-4">
-                <div className="flex items-center justify-between mb-3 sm:mb-4">
-                  <h3 className="text-base sm:text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]">
-                    Invite Members
-                  </h3>
-                  <button
-                    onClick={() => {
-                      setIsAddingMember(false);
-                      setPendingEmails([]);
-                    }}
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    <X className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </button>
-                </div>
-
-                {/* Email Input */}
-                <div className="flex gap-2 mb-3 sm:mb-4">
-                  <div className="flex-1 relative">
-                    <Mail className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" />
-                    <input
-                      type="email"
-                      value={emailInput}
-                      onChange={(e) => setEmailInput(e.target.value)}
-                      onKeyPress={(e) => e.key === "Enter" && handleAddEmail()}
-                      placeholder="Enter email..."
-                      className="w-full pl-9 sm:pl-10 pr-2.5 sm:pr-3 py-1.5 sm:py-2 bg-gray-800/60 border border-gray-700/50 rounded-lg text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4BBEBB]/50"
-                    />
-                  </div>
-                  <button
-                    onClick={handleAddEmail}
-                    className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-all text-xs sm:text-sm"
-                  >
-                    Add
-                  </button>
-                </div>
-
-                {/* Pending Emails */}
-                {pendingEmails.length > 0 && (
-                  <div className="mb-3 sm:mb-4">
-                    <p className="text-xs text-gray-400 mb-2">
-                      Pending ({pendingEmails.length})
-                    </p>
-                    <div className="space-y-2">
-                      {pendingEmails.map((email) => (
-                        <div
-                          key={email}
-                          className="flex items-center justify-between bg-gray-800/60 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg"
-                        >
-                          <span className="text-xs sm:text-sm text-white truncate">
-                            {email}
-                          </span>
-                          <button
-                            onClick={() => handleRemovePendingEmail(email)}
-                            className="text-red-400 hover:text-red-300 transition-colors ml-2"
-                          >
-                            <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Send Invites */}
-                {pendingEmails.length > 0 && (
-                  <button
-                    onClick={handleSendInvites}
-                    className="w-full py-1.5 sm:py-2 bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-white rounded-lg font-semibold hover:opacity-90 transition-all text-xs sm:text-sm"
-                  >
-                    Send {pendingEmails.length} Invite
-                    {pendingEmails.length > 1 ? "s" : ""}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Members List */}
-          <div className="flex-1 p-4 sm:p-6">
-            <h3 className="text-base sm:text-lg font-bold text-white mb-3 sm:mb-4">
-              Members ({selectedTeam.members.length})
-            </h3>
-
-            <div className="space-y-2 sm:space-y-3">
-              {selectedTeam.members.map((member) => (
-                <div
-                  key={member.id}
-                  className="bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 rounded-xl p-3 sm:p-4 hover:bg-gray-800/60 transition-all"
-                >
-                  <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                    {/* Avatar */}
-                    <div
-                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r ${getAvatarColor(
-                        member.email
-                      )} flex items-center justify-center text-white font-bold text-xs sm:text-sm flex-shrink-0`}
-                    >
-                      {getInitials(member.name)}
-                    </div>
-
-                    {/* Details */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 sm:gap-2">
-                        <h4 className="text-white font-semibold text-xs sm:text-sm truncate">
-                          {member.name}
-                        </h4>
-                        {member.role === "owner" && (
-                          <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-500 flex-shrink-0" />
-                        )}
-                        {member.status === "pending" && (
-                          <span className="text-xs bg-yellow-500/20 text-yellow-500 px-1.5 sm:px-2 py-0.5 rounded-full">
-                            Pending
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-gray-400 text-xs truncate">
-                        {member.email}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  {member.role !== "owner" && (
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={member.role}
-                        onChange={(e) =>
-                          handleChangeRole(
-                            member.id,
-                            e.target.value as "admin" | "member"
-                          )
-                        }
-                        className="flex-1 bg-gray-700 text-white px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4BBEBB]/50"
-                      >
-                        <option value="member">Member</option>
-                        <option value="admin">Admin</option>
-                      </select>
-
-                      <button
-                        onClick={() => handleRemoveMember(member.id)}
-                        className="p-1 sm:p-1.5 text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-lg transition-all"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+      {selectedTeam && (
+        <TeamInfoPanel
+          selectedTeam={selectedTeam}
+          showTeamInfo={showTeamInfo}
+          setShowTeamInfo={setShowTeamInfo}
+          isAddingMember={isAddingMember}
+          setIsAddingMember={setIsAddingMember}
+          showTeamCode={showTeamCode}
+          setShowTeamCode={setShowTeamCode}
+          emailInput={emailInput}
+          setEmailInput={setEmailInput}
+          pendingEmails={pendingEmails}
+          setPendingEmails={setPendingEmails}
+          getInitials={getInitials}
+          getAvatarColor={getAvatarColor}
+          handleAddEmail={handleAddEmail}
+          handleRemovePendingEmail={handleRemovePendingEmail}
+          handleSendInvites={handleSendInvites}
+          handleChangeRole={handleChangeRole}
+          handleRemoveMember={handleRemoveMember}
+        />
       )}
     </div>
   );
