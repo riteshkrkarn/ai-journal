@@ -1,16 +1,17 @@
-import React, { useState } from "react";
+// First, install React Hook Form:
+// npm install react-hook-form
+
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import type { SubmitHandler } from "react-hook-form";
-import { login, register } from "../utils/auth";
-
+import { login, register, hasAuth } from "../utils/auth";
 
 // Types for form data
-type SigninFormData = {
+type LoginFormData = {
   email: string;
   password: string;
 };
-
 
 type SignupFormData = {
   email: string;
@@ -18,40 +19,41 @@ type SignupFormData = {
   confirmPassword: string;
 };
 
-
 const AuthPage: React.FC = () => {
   const navigate = useNavigate();
-  const [isSignin, setIsSignin] = useState(true);
+  const [isLogin, setIsLogin] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Redirect to dashboard if already authenticated
+  useEffect(() => {
+    if (hasAuth()) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [navigate]);
 
-  // Separate forms for signin and signup
-  const signinForm = useForm<SigninFormData>();
+  // Separate forms for login and signup
+  const loginForm = useForm<LoginFormData>();
   const signupForm = useForm<SignupFormData>();
 
-
-  const onSigninSubmit: SubmitHandler<SigninFormData> = async (data) => {
+  const onLoginSubmit: SubmitHandler<LoginFormData> = async (data) => {
     setError("");
     setLoading(true);
-
 
     try {
       await login(data.email, data.password);
       navigate("/dashboard");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Sign in failed";
+      const message = err instanceof Error ? err.message : "Login failed";
       setError(message);
     } finally {
       setLoading(false);
     }
   };
 
-
   const onSignupSubmit: SubmitHandler<SignupFormData> = async (data) => {
     setError("");
     setLoading(true);
-
 
     try {
       // Use email username as fullName for simplicity
@@ -66,14 +68,12 @@ const AuthPage: React.FC = () => {
     }
   };
 
-
-  const toggleAuthMode = (mode: "signin" | "signup") => {
-    setIsSignin(mode === "signin");
+  const toggleAuthMode = (mode: "login" | "signup") => {
+    setIsLogin(mode === "login");
     // Reset forms when switching modes
-    signinForm.reset();
+    loginForm.reset();
     signupForm.reset();
   };
-
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gray-950 p-4 sm:p-6 lg:p-8 font-['Inter',sans-serif]">
@@ -96,7 +96,6 @@ const AuthPage: React.FC = () => {
           </div>
         </div>
 
-
         <h1
           className="
                     text-4xl font-extrabold text-center mb-10 
@@ -104,9 +103,8 @@ const AuthPage: React.FC = () => {
                     bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]
                 "
         >
-          {isSignin ? "Welcome Back" : "Create Your Account"}
+          {isLogin ? "Welcome Back" : "Create Your Account"}
         </h1>
-
 
         {/* Error message */}
         {error && (
@@ -115,24 +113,23 @@ const AuthPage: React.FC = () => {
           </div>
         )}
 
-
         <div className="flex mb-8 bg-gray-800 p-1 rounded-xl shadow-inner shadow-gray-900/50">
           <button
             type="button"
-            onClick={() => toggleAuthMode("signin")}
+            onClick={() => toggleAuthMode("login")}
             className={`w-1/2 py-2 text-md font-semibold rounded-lg transition-all duration-300 ${
-              isSignin
+              isLogin
                 ? "bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-black shadow-md shadow-cyan-500/30"
                 : "text-gray-400 hover:text-white hover:bg-gray-700"
             }`}
           >
-            Sign In
+            Log In
           </button>
           <button
             type="button"
             onClick={() => toggleAuthMode("signup")}
             className={`w-1/2 py-2 text-md font-semibold rounded-lg transition-all duration-300 ${
-              !isSignin
+              !isLogin
                 ? "bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-black shadow-md shadow-cyan-500/30"
                 : "text-gray-400 hover:text-white hover:bg-gray-700"
             }`}
@@ -141,11 +138,10 @@ const AuthPage: React.FC = () => {
           </button>
         </div>
 
-
-        {/* Signin Form */}
-        {isSignin ? (
+        {/* Login Form */}
+        {isLogin ? (
           <form
-            onSubmit={signinForm.handleSubmit(onSigninSubmit)}
+            onSubmit={loginForm.handleSubmit(onLoginSubmit)}
             className="space-y-5"
           >
             {/* Email Input */}
@@ -154,7 +150,7 @@ const AuthPage: React.FC = () => {
                 type="email"
                 placeholder="Email Address"
                 aria-label="Email Address"
-                {...signinForm.register("email", {
+                {...loginForm.register("email", {
                   required: "Email is required",
                   pattern: {
                     value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
@@ -163,13 +159,12 @@ const AuthPage: React.FC = () => {
                 })}
                 className="w-full p-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-[#4BBEBB] focus:border-transparent outline-none transition duration-200 shadow-inner"
               />
-              {signinForm.formState.errors.email && (
+              {loginForm.formState.errors.email && (
                 <p className="text-red-400 text-sm mt-1">
-                  {signinForm.formState.errors.email.message}
+                  {loginForm.formState.errors.email.message}
                 </p>
               )}
             </div>
-
 
             {/* Password Input */}
             <div>
@@ -177,7 +172,7 @@ const AuthPage: React.FC = () => {
                 type="password"
                 placeholder="Password"
                 aria-label="Password"
-                {...signinForm.register("password", {
+                {...loginForm.register("password", {
                   required: "Password is required",
                   minLength: {
                     value: 6,
@@ -186,13 +181,12 @@ const AuthPage: React.FC = () => {
                 })}
                 className="w-full p-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-[#4BBEBB] focus:border-transparent outline-none transition duration-200 shadow-inner"
               />
-              {signinForm.formState.errors.password && (
+              {loginForm.formState.errors.password && (
                 <p className="text-red-400 text-sm mt-1">
-                  {signinForm.formState.errors.password.message}
+                  {loginForm.formState.errors.password.message}
                 </p>
               )}
             </div>
-
 
             {/* Submit Button */}
             <button
@@ -208,7 +202,7 @@ const AuthPage: React.FC = () => {
                                 disabled:opacity-50 disabled:cursor-not-allowed
                             "
             >
-              {loading ? "Signing In..." : "Sign In"}
+              {loading ? "Logging In..." : "Log In"}
             </button>
           </form>
         ) : (
@@ -239,7 +233,6 @@ const AuthPage: React.FC = () => {
               )}
             </div>
 
-
             {/* Password Input */}
             <div>
               <input
@@ -261,7 +254,6 @@ const AuthPage: React.FC = () => {
                 </p>
               )}
             </div>
-
 
             {/* Confirm Password */}
             <div>
@@ -285,7 +277,6 @@ const AuthPage: React.FC = () => {
               )}
             </div>
 
-
             {/* Submit Button */}
             <button
               type="submit"
@@ -305,21 +296,19 @@ const AuthPage: React.FC = () => {
           </form>
         )}
 
-
         <p className="text-center text-sm mt-6 text-gray-500">
-          {isSignin ? "Don't have an account? " : "Already have an account? "}
+          {isLogin ? "Don't have an account? " : "Already have an account? "}
           <button
             type="button"
-            onClick={() => setIsSignin(!isSignin)}
+            onClick={() => setIsLogin(!isLogin)}
             className="text-[#4BBEBB] font-medium hover:text-cyan-400 transition-colors"
           >
-            {isSignin ? "Sign Up" : "Sign In"}
+            {isLogin ? "Sign Up" : "Log In"}
           </button>
         </p>
       </div>
     </div>
   );
 };
-
 
 export default AuthPage;
