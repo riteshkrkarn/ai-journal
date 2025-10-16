@@ -252,10 +252,9 @@ function LandingPage() {
               whileTap={{ scale: 0.98 }}
             >
               <Button 
-                onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
-                variant="outline"
-                className="
-                  w-full sm:w-auto
+                  onClick={() => navigate('/about')}  // Changed from scrollTo
+                  variant="outline"
+                  className=" w-full sm:w-auto
                   px-8 md:px-10
                   py-5 md:py-6
                   text-base md:text-lg
@@ -267,11 +266,10 @@ function LandingPage() {
                   hover:bg-[#4BBEBB]/10
                   hover:border-[#4BBEBB]/60
                   hover:text-white
-                  transition-all duration-300
-                "
-              >
-                Learn More
-              </Button>
+                  transition-all duration-300"
+            >
+              Learn More
+            </Button>
             </motion.div>
           </motion.div>
 

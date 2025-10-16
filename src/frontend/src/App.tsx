@@ -5,6 +5,8 @@ import ChatBot from "./pages/ChatBot";
 import TeamSpace from "./pages/TeamSpace";
 import CreateJoinTeam from "./pages/CreateJoinTeam";
 import { hasAuth } from "./utils/auth";
+import About from './pages/About'
+
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = hasAuth();
@@ -16,7 +18,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function DashboardPage() {
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-8">
+    <div className="min-h-screen">
       <ChatBot />
     </div>
   );
@@ -65,6 +67,13 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+      <Route 
+          path="/about" 
+          element={
+            <ProtectedRoute>
+              <About />
+            </ProtectedRoute>
+          }/>
       </Routes>
     </BrowserRouter>
   );
