@@ -58,15 +58,22 @@ export async function journalAgent(userId: string) {
    */
   const fetchJournalEntry = createTool({
     name: "fetchJournalEntry",
-    description: "Read your journal entry for a specific date.",
+    description: "Read all your journal entries for a specific date.",
     schema: z.object({
       date: z.string().describe("The date in YYYY-MM-DD format"),
     }),
     fn: async ({ date }: { date: string }) => {
-      const entry = await fetchEntryByDate(userId, date);
-      return entry
-        ? { content: entry.content }
-        : { content: "No entry found for this date." };
+      const entries = await fetchEntryByDate(userId, date);
+      if (!entries || entries.length === 0) {
+        return { content: `No journal entries found for this date.` };
+      }
+      if (entries.length === 1) {
+        return { content: entries[0]?.content || "" };
+      }
+      // Multiple entries: return all as a list
+      return {
+        content: entries.map((e, i) => `${i + 1}. ${e.content}`).join("\n"),
+      };
     },
   });
 
@@ -76,21 +83,78 @@ export async function journalAgent(userId: string) {
    */
   const searchJournalEntries = createTool({
     name: "searchJournalEntries",
-    description: "Search journal entries by meaning or topic.",
+    description:
+      "Search and fetch journal entries by meaning or topic. Use this when user wants to SEE/READ/GET their entries (e.g., 'show me', 'give me', 'fetch my', 'what are my'). Returns the actual entry content.",
     schema: z.object({
       query: z
         .string()
         .describe("The search query to find relevant journal entries"),
     }),
     fn: async ({ query }: { query: string }) => {
-      const queryEmbedding = await generateEmbedding(query);
-      const results = await searchEntries(userId, queryEmbedding, 3);
-
-      if (results.length === 0) {
-        return "No journal entries found matching your search.";
+      // Query expansion: if user asks about 'coding', include related terms
+      const normalized = query.toLowerCase();
+      const expansions: string[] = [query];
+      if (
+        /(coding|programming|code|dev|developer|software)/i.test(normalized)
+      ) {
+        expansions.push(
+          "programming",
+          "coding",
+          "software development",
+          "DSA",
+          "data structures",
+          "algorithms",
+          "leetcode",
+          "hackathon",
+          "project",
+          "Java",
+          "Python",
+          "TypeScript",
+          "JavaScript"
+        );
       }
 
-      const formattedResults = results
+      // Generate embeddings and aggregate search results
+      const allResults: {
+        date: string;
+        content: string;
+        similarity: number;
+      }[] = [];
+      for (const term of expansions) {
+        const emb = await generateEmbedding(term);
+        const res = await searchEntries(userId, emb, 100);
+        allResults.push(...res);
+      }
+
+      // Deduplicate by date+content pair keeping highest similarity
+      const dedupMap = new Map<
+        string,
+        { date: string; content: string; similarity: number }
+      >();
+      for (const r of allResults) {
+        const key = `${r.date}|${r.content}`;
+        const existing = dedupMap.get(key);
+        if (!existing || r.similarity > existing.similarity) {
+          dedupMap.set(key, r);
+        }
+      }
+      let deduped = Array.from(dedupMap.values()).sort(
+        (a, b) => b.similarity - a.similarity
+      );
+
+      // Progressive filtering: try 0.6, then 0.5, then 0.4 until we have at least 3, max 10
+      const thresholds = [0.6, 0.5, 0.4];
+      let filtered: typeof deduped = [];
+      for (const t of thresholds) {
+        filtered = deduped.filter((r) => r.similarity >= t);
+        if (filtered.length >= 3) break;
+      }
+      if (filtered.length === 0) {
+        return "No journal entries found matching your search.";
+      }
+      filtered = filtered.slice(0, 10);
+
+      const formattedResults = filtered
         .map(
           (r, i) =>
             `${i + 1}. Date: ${r.date}\nContent: ${
@@ -99,7 +163,7 @@ export async function journalAgent(userId: string) {
         )
         .join("\n\n");
 
-      return `Found ${results.length} matching entries:\n\n${formattedResults}`;
+      return `Found ${filtered.length} matching entries:\n\n${formattedResults}`;
     },
   });
 
@@ -112,7 +176,7 @@ export async function journalAgent(userId: string) {
   const getSummary = createTool({
     name: "getSummary",
     description:
-      "Get a summary of journal entries for a date range. Defaults to last 7 days if no dates provided.",
+      "Fetch journal entries for a date range to create an AI-generated summary/analysis. Use this ONLY when user explicitly asks for a SUMMARY or ANALYSIS (e.g., 'summarize', 'analyze', 'tell me about'). DO NOT use this if user wants to see/read/get the actual entries. Defaults to last 7 days if no dates provided. You MUST analyze the returned entries and write a thoughtful 2-3 paragraph summary.",
     fn: async (args: any) => {
       const { startDate, endDate, topic } = args || {};
       const start: string = (startDate ||
@@ -124,7 +188,7 @@ export async function journalAgent(userId: string) {
       const entries = await getEntriesInRange(userId, start, end);
 
       if (entries.length === 0) {
-        return { summary: "No entries found in this date range." };
+        return "No entries found in this date range.";
       }
 
       let filteredEntries: Array<{ date: string; content: string }> = entries;
@@ -137,24 +201,22 @@ export async function journalAgent(userId: string) {
         );
 
         filteredEntries = searchResults
-          .filter((r) => r.similarity > 0.5)
+          .filter((r) => r.similarity >= 0.5)
           .map((r) => ({ date: r.date, content: r.content }));
       }
 
       if (filteredEntries.length === 0) {
-        return {
-          summary: `No entries about "${topic}" found in this date range.`,
-        };
+        return `No entries about "${topic}" found in this date range.`;
       }
 
       const entriesText = filteredEntries
-        .map((e) => `${e.date}: ${e.content}`)
+        .map((e) => `**${e.date}:** ${e.content}`)
         .join("\n\n");
 
-      return {
-        summary: `Entries from ${start} to ${end}:\n\n${entriesText}`,
-        entryCount: filteredEntries.length,
-      };
+      // Return the entries for the AI to summarize
+      return `Found ${filteredEntries.length} entries from ${start} to ${end}${
+        topic ? ` about "${topic}"` : ""
+      }:\n\n${entriesText}\n\n---\nNow write a thoughtful 2-3 paragraph summary analyzing these entries. Identify key themes, patterns, activities, and accomplishments. Make it conversational and insightful.`;
     },
   });
 
@@ -532,6 +594,29 @@ CALENDAR: addToCalendar, listUpcomingEvents
 
 For teams: Always use listUserTeams first to get team IDs, then use team operations.
 For calendar: Parse dates naturally (tomorrow, next Monday, 2024-10-15).
+
+CRITICAL TOOL SELECTION:
+- If user wants to SEE/READ/GET/FETCH entries (e.g., "give me my coding journals", "show me entries about X", "what are my recent journals"):
+  → Use searchJournalEntries - returns actual entry content
+  
+- If user wants a SUMMARY/ANALYSIS (e.g., "summarize my week", "tell me about", "analyze my"):
+  → Use getSummary - returns AI-generated summary
+  
+Examples:
+✅ "Give me my recent coding journals" → searchJournalEntries
+✅ "Show me entries about Python" → searchJournalEntries
+✅ "What did I write about work?" → searchJournalEntries
+✅ "Summarize my coding journals" → getSummary
+✅ "Tell me about my week" → getSummary
+
+SUMMARY GENERATION:
+When getSummary is called:
+1. The tool will return the entries with an instruction at the end
+2. Follow that instruction to write a thoughtful, well-structured summary
+3. Identify key themes, patterns, activities, and accomplishments
+4. Write 2-3 paragraphs that give meaningful insights, not just a list
+5. Make it conversational and engaging
+6. Use bullet points sparingly, only for highlighting specific dates/activities within your narrative
 
 IMPORTANT ERROR HANDLING:
 - If searchJournalEntries returns an empty array, tell user they need to write entries first

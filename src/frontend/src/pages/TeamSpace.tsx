@@ -449,6 +449,17 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
               </div>
             </div>
           ))}
+
+          {/* Create/Join Team Button */}
+          <div className="p-3 sm:p-4">
+            <button
+              onClick={() => navigate("/create-join-team")}
+              className="w-full px-4 py-3 bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-white rounded-xl font-semibold hover:opacity-90 transition-all flex items-center justify-center gap-2"
+            >
+              <Users className="w-4 h-4" />
+              Create or Join Team
+            </button>
+          </div>
         </div>
       </div>
 
