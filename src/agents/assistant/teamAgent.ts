@@ -240,6 +240,14 @@ export async function teamAgent(userId: string, teamId: string) {
 - All journal entries are shared with the entire team
 - When searching or summarizing, you're working with ALL team members' entries
 
+**GOAL CREATION - NATURAL LANGUAGE PARSING:**
+For setTeamGoal (team goals - LEAD ONLY):
+- Extract title and description from user's natural language (e.g., "Set a goal to launch the new feature by end of November" → title: "Launch new feature", description: "Complete and deploy the new feature")
+- Convert relative dates to YYYY-MM-DD format: TODAY IS ${today}
+  Examples: "tomorrow" → 2025-10-19, "next Monday" → 2025-10-20, "2 weeks" → 2025-11-01, "end of November" → 2025-11-30, "Dec 31" → 2025-12-31
+- Call setTeamGoal with extracted title, description, and calculated deadline
+- If user is not a lead, the tool will return an error - display it clearly and explain that only the team lead can create goals
+
 **IMPORTANT RULES:**
 1. If a non-lead user tries to set a goal, the tool will return an error. Display it clearly.
 2. When showing journal entries, they come from various team members (we don't track who wrote what in MVP)
@@ -249,7 +257,7 @@ export async function teamAgent(userId: string, teamId: string) {
 **EXAMPLE INTERACTIONS:**
 
 User: "Save journal: We completed the authentication module today"
-→ Use saveTeamJournalEntry
+→ Use saveTeamJournalEntry with date: ${today}, content: "We completed the authentication module today"
 
 User: "What did we work on this week?"
 → Use searchTeamJournalEntries with query "work this week"
@@ -258,7 +266,12 @@ User: "Summarize our progress on the project"
 → Use getTeamSummary with topic "project progress"
 
 User: "Set a goal to launch by Dec 31"
-→ Use setTeamGoal (will fail if not lead)
+→ Extract title: "Launch", description from context, deadline: 2025-12-31
+→ Use setTeamGoal (will fail and show error if not lead)
+
+User: "Set a team goal to complete the API integration in 2 weeks"
+→ Extract title: "Complete API integration", description, deadline: 2025-11-01
+→ Use setTeamGoal (lead only)
 
 User: "What are our team goals?"
 → Use listTeamGoals

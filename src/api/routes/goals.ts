@@ -9,10 +9,11 @@ import {
   deleteGoal,
   createTeamGoal,
   getTeamGoals,
+  updateTeamGoalCompleted,
 } from "../../services/goals";
 import { generateEmbedding } from "../../services/embeddings";
 import { searchEntries } from "../../services/database";
-import { isTeamMember } from "../../services/teams";
+import { isTeamMember, getTeamMembers } from "../../services/teams";
 
 const router = Router();
 
@@ -205,7 +206,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
 // ===== TEAM GOAL ROUTES =====
 
 /**
- * POST /goals/team/:teamId - Create team goal
+ * POST /goals/team/:teamId - Create team goal (LEAD ONLY)
  */
 router.post("/team/:teamId", async (req: Request, res: Response) => {
   try {
@@ -225,6 +226,17 @@ router.post("/team/:teamId", async (req: Request, res: Response) => {
     const isMember = await isTeamMember(userId, teamId);
     if (!isMember) {
       return res.status(403).json({ error: "Not a team member" });
+    }
+
+    // Check if user is team lead
+    const members = await getTeamMembers(teamId);
+    const userMember = members.find((m) => m.user_id === userId);
+    const isLead = userMember?.role === "lead";
+
+    if (!isLead) {
+      return res
+        .status(403)
+        .json({ error: "Only team leads can create goals" });
     }
 
     const goal = await createTeamGoal(
@@ -291,5 +303,64 @@ router.get("/team/:teamId", async (req: Request, res: Response) => {
       .json({ error: error.message || "Failed to list team goals" });
   }
 });
+
+/**
+ * PUT /goals/team/:teamId/:goalId/complete - Mark team goal complete (LEAD ONLY)
+ */
+router.put(
+  "/team/:teamId/:goalId/complete",
+  async (req: Request, res: Response) => {
+    try {
+      const userId = req.user!.id;
+      const { teamId, goalId } = req.params;
+      const { completed } = req.body;
+
+      if (!goalId) {
+        return res.status(400).json({ error: "Goal ID is required" });
+      }
+
+      if (!teamId) {
+        return res.status(400).json({ error: "Team ID is required" });
+      }
+
+      if (typeof completed !== "boolean") {
+        return res.status(400).json({ error: "completed must be boolean" });
+      }
+
+      // Check if user is team member
+      const isMember = await isTeamMember(userId, teamId);
+      if (!isMember) {
+        return res.status(403).json({ error: "Not a team member" });
+      }
+
+      // Check if user is team lead
+      const members = await getTeamMembers(teamId);
+      const userMember = members.find((m) => m.user_id === userId);
+      const isLead = userMember?.role === "lead";
+
+      if (!isLead) {
+        return res
+          .status(403)
+          .json({ error: "Only team leads can mark goals complete" });
+      }
+
+      const goal = await updateTeamGoalCompleted(goalId, completed);
+
+      res.json({
+        message: completed
+          ? "Goal marked as completed"
+          : "Goal marked as incomplete",
+        goal: {
+          id: goal.id,
+          title: goal.title,
+          completed: goal.completed,
+        },
+      });
+    } catch (error: any) {
+      console.error("[GOALS] Update team goal error:", error);
+      res.status(500).json({ error: error.message || "Failed to update goal" });
+    }
+  }
+);
 
 export default router;

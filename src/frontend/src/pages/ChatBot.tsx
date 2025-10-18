@@ -13,12 +13,13 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import TeamSpace from "./TeamSpace";
+import GoalsPage from "./GoalsPage";
 import { logout } from "../utils/auth";
 
 const Logo: React.FC = () => (
   <div className="flex items-center space-x-2">
-     <div className='w-10 h-10'>
-        <img src="/logo-img.png" alt="logo image" />
+    <div className="w-10 h-10">
+      <img src="/logo-img.png" alt="logo image" />
     </div>
     <span className="text-base sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]">
       ReflectIQ
@@ -41,7 +42,9 @@ const ChatBot: React.FC = () => {
   const [inputMessage, setInputMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState<"chat" | "team">("chat");
+  const [currentPage, setCurrentPage] = useState<"chat" | "team" | "goals">(
+    "chat"
+  );
   const [isConnected, setIsConnected] = useState(false);
   const [isWaitingResponse, setIsWaitingResponse] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -339,7 +342,7 @@ const ChatBot: React.FC = () => {
     }
   };
 
-  const navigateToPage = (page: "chat" | "team") => {
+  const navigateToPage = (page: "chat" | "team" | "goals") => {
     setCurrentPage(page);
     if (window.innerWidth < 768) {
       setIsSidebarOpen(false);
@@ -363,8 +366,12 @@ const ChatBot: React.FC = () => {
     return <TeamSpace onBack={handleBackToChat} />;
   }
 
+  if (currentPage === "goals") {
+    return <GoalsPage onBack={handleBackToChat} />;
+  }
+
   return (
-   <div className="h-screen w-full bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex font-['Inter',sans-serif] overflow-hidden m-0 p-0">
+    <div className="h-screen w-full bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex font-['Inter',sans-serif] overflow-hidden m-0 p-0">
       {/* Custom scrollbar styles */}
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
@@ -419,7 +426,10 @@ const ChatBot: React.FC = () => {
             </span>
           </button>
 
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800/50 transition-all group">
+          <button
+            onClick={() => navigateToPage("goals")}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800/50 transition-all group"
+          >
             <Search className="w-5 h-5 text-gray-400 group-hover:text-[#4BBEBB] flex-shrink-0" />
             <span className="text-sm font-medium text-gray-400 group-hover:bg-clip-text group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-[#016BFF] group-hover:to-[#4BBEBB] truncate">
               Goal
@@ -446,8 +456,8 @@ const ChatBot: React.FC = () => {
 
         {/* Profile and Settings */}
         <div className="p-3 border-t border-gray-800/50 space-y-2 flex-shrink-0">
-          <button 
-            onClick={() => navigate('/profile')}
+          <button
+            onClick={() => navigate("/profile")}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800/50 transition-all group"
           >
             <User className="w-5 h-5 text-gray-400 group-hover:text-[#4BBEBB] flex-shrink-0" />
@@ -455,9 +465,9 @@ const ChatBot: React.FC = () => {
               Profile
             </span>
           </button>
-          
-          <button 
-            onClick={() => navigate('/settings')}
+
+          <button
+            onClick={() => navigate("/settings")}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800/50 transition-all group"
           >
             <Settings className="w-5 h-5 text-gray-400 group-hover:text-[#4BBEBB] flex-shrink-0" />
@@ -494,7 +504,11 @@ const ChatBot: React.FC = () => {
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             className="md:hidden text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-800/50 rounded-lg mr-3"
           >
-            {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {isSidebarOpen ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
           </button>
           <h1 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] md:hidden">
             ReflectIQ
@@ -529,9 +543,15 @@ const ChatBot: React.FC = () => {
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex ${message.isUser ? "justify-end" : "justify-start"}`}
+                  className={`flex ${
+                    message.isUser ? "justify-end" : "justify-start"
+                  }`}
                 >
-                  <div className={`max-w-[85%] ${message.isUser ? "ml-12" : "mr-12"}`}>
+                  <div
+                    className={`max-w-[85%] ${
+                      message.isUser ? "ml-12" : "mr-12"
+                    }`}
+                  >
                     {!message.isUser && (
                       <div className="flex items-center gap-2 mb-2">
                         <div
@@ -543,12 +563,20 @@ const ChatBot: React.FC = () => {
                               : "bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]"
                           }`}
                         >
-                          <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                          <svg
+                            className="w-3.5 h-3.5 text-white"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
                             <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" />
                           </svg>
                         </div>
                         <span className="text-xs font-medium text-gray-500">
-                          {message.isError ? "Error" : message.isSystem ? "System" : "ReflectIQ"}
+                          {message.isError
+                            ? "Error"
+                            : message.isSystem
+                            ? "System"
+                            : "ReflectIQ"}
                         </span>
                       </div>
                     )}
@@ -570,7 +598,11 @@ const ChatBot: React.FC = () => {
                         )}
                       </p>
                     </div>
-                    <p className={`text-xs text-gray-600 mt-1 ${message.isUser ? "text-right" : "text-left"}`}>
+                    <p
+                      className={`text-xs text-gray-600 mt-1 ${
+                        message.isUser ? "text-right" : "text-left"
+                      }`}
+                    >
                       {message.timestamp}
                     </p>
                   </div>
@@ -583,20 +615,37 @@ const ChatBot: React.FC = () => {
                   <div className="max-w-[85%] mr-12">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-6 h-6 rounded-full bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] flex items-center justify-center flex-shrink-0">
-                        <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <svg
+                          className="w-3.5 h-3.5 text-white"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                        >
                           <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" />
                         </svg>
                       </div>
-                      <span className="text-xs font-medium text-gray-500">ReflectIQ</span>
+                      <span className="text-xs font-medium text-gray-500">
+                        ReflectIQ
+                      </span>
                     </div>
                     <div className="rounded-2xl p-4 bg-gray-800/60 backdrop-blur-sm border border-gray-700/50">
                       <div className="flex items-center gap-2">
                         <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-[#4BBEBB] rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-                          <div className="w-2 h-2 bg-[#4BBEBB] rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
-                          <div className="w-2 h-2 bg-[#4BBEBB] rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+                          <div
+                            className="w-2 h-2 bg-[#4BBEBB] rounded-full animate-bounce"
+                            style={{ animationDelay: "0ms" }}
+                          ></div>
+                          <div
+                            className="w-2 h-2 bg-[#4BBEBB] rounded-full animate-bounce"
+                            style={{ animationDelay: "150ms" }}
+                          ></div>
+                          <div
+                            className="w-2 h-2 bg-[#4BBEBB] rounded-full animate-bounce"
+                            style={{ animationDelay: "300ms" }}
+                          ></div>
                         </div>
-                        <span className="text-sm text-gray-400">AI is thinking...</span>
+                        <span className="text-sm text-gray-400">
+                          AI is thinking...
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -614,13 +663,17 @@ const ChatBot: React.FC = () => {
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={isConnected ? "Message ReflectIQ..." : "Connecting..."}
+              placeholder={
+                isConnected ? "Message ReflectIQ..." : "Connecting..."
+              }
               disabled={!isConnected || isWaitingResponse}
               className="flex-1 bg-gray-800/60 border border-gray-700/50 rounded-2xl px-6 py-4 text-base text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4BBEBB]/50 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <button
               onClick={handleSendMessage}
-              disabled={!inputMessage.trim() || !isConnected || isWaitingResponse}
+              disabled={
+                !inputMessage.trim() || !isConnected || isWaitingResponse
+              }
               className="bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl px-6 py-4 font-semibold transition-all hover:scale-105 flex items-center justify-center gap-2"
             >
               <Send className="w-5 h-5" />

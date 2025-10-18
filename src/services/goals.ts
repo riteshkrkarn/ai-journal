@@ -37,7 +37,7 @@ export async function createGoal(
 }
 
 /**
- * Get all goals for a user
+ * Get all goals for a user (personal goals only, excludes team goals)
  */
 export async function getAllGoals(userId: string): Promise<
   Array<{
@@ -53,6 +53,7 @@ export async function getAllGoals(userId: string): Promise<
     .from("goals")
     .select("id, title, description, deadline, completed, created_at")
     .eq("user_id", userId)
+    .is("team_id", null)
     .order("deadline", { ascending: true });
 
   if (error) {
@@ -174,4 +175,25 @@ export async function getTeamGoals(teamId: string) {
   }
 
   return data || [];
+}
+
+/**
+ * Update team goal completion status
+ */
+export async function updateTeamGoalCompleted(
+  goalId: string,
+  completed: boolean
+) {
+  const { data, error } = await supabase
+    .from("goals")
+    .update({ completed })
+    .eq("id", goalId)
+    .select("id, title, completed")
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to update goal: ${error.message}`);
+  }
+
+  return data;
 }
