@@ -43,23 +43,18 @@ export async function saveEntry(
 export async function fetchEntryByDate(
   userId: string,
   date: string
-): Promise<{ content: string } | undefined> {
+): Promise<Array<{ content: string }>> {
   const { data, error } = await supabase
     .from("entries")
     .select("content")
     .eq("user_id", userId)
-    .eq("date", date)
-    .single();
+    .eq("date", date);
 
   if (error) {
-    if (error.code === "PGRST116") {
-      // No rows returned - entry doesn't exist
-      return undefined;
-    }
     throw new Error(`Failed to fetch entry: ${error.message}`);
   }
 
-  return data as { content: string };
+  return (data as Array<{ content: string }>) || [];
 }
 
 /**

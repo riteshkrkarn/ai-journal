@@ -63,7 +63,7 @@ app.use((err: Error, req: Request, res: Response, next: any) => {
 // Create HTTP server
 const server = createServer(app);
 
-// Setup WebSocket
+// Setup WebSocket (handles both personal and team chat)
 setupWebSocket(server);
 
 // Start server

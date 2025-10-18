@@ -49,6 +49,7 @@ const ChatBot: React.FC = () => {
   const reconnectTimeoutRef = useRef<number | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 3;
+  const authFailedRef = useRef(false); // Track if auth failed to prevent reconnection loops
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -86,7 +87,8 @@ const ChatBot: React.FC = () => {
             if (data.status === "authenticated") {
               console.log("[WS] Authenticated successfully");
               setIsConnected(true);
-              reconnectAttemptsRef.current = 0;
+              reconnectAttemptsRef.current = 0; // Reset reconnect attempts
+              authFailedRef.current = false; // Reset auth failed flag on successful connection
 
               setMessages((prev) => {
                 const hasConnectionMessage = prev.some(
@@ -143,6 +145,7 @@ const ChatBot: React.FC = () => {
               data.message?.includes("authenticated") ||
               data.message?.includes("token")
             ) {
+              authFailedRef.current = true; // Mark auth as failed to prevent reconnection
               navigate("/auth", { replace: true });
               return;
             }
@@ -175,6 +178,16 @@ const ChatBot: React.FC = () => {
         console.log("[WS] Connection closed");
         setIsConnected(false);
 
+        // If auth failed, don't reconnect - redirect to login instead
+        if (authFailedRef.current) {
+          console.log(
+            "[WS] Auth failed, redirecting to login instead of reconnecting"
+          );
+          navigate("/auth", { replace: true });
+          return;
+        }
+
+        // Attempt to reconnect
         if (reconnectAttemptsRef.current < maxReconnectAttempts) {
           reconnectAttemptsRef.current += 1;
           const delay = Math.min(
