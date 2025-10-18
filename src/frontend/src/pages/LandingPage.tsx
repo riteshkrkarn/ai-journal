@@ -1,16 +1,16 @@
-import { Button } from "@/components/ui/button"
-import { useNavigate } from "react-router-dom"
-import { motion } from "framer-motion"
-import type { Variants } from "framer-motion"
-import { Sparkles, ArrowRight } from "lucide-react"
-import image from "../assets/landing-page-img.png"
-import Navbar from "./Navbar"
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import type { Variants } from "framer-motion";
+import { Sparkles, ArrowRight } from "lucide-react";
+import image from "../assets/landing-page-img.png";
+import Navbar from "./Navbar";
 
 function LandingPage() {
   const navigate = useNavigate();
 
   const handleGetStarted = () => {
-    navigate('/auth');
+    navigate("/auth");
   };
 
   // Animation variants
@@ -20,9 +20,9 @@ function LandingPage() {
       opacity: 1,
       transition: {
         staggerChildren: 0.12,
-        delayChildren: 0.2
-      }
-    }
+        delayChildren: 0.2,
+      },
+    },
   };
 
   const imageVariants: Variants = {
@@ -33,9 +33,9 @@ function LandingPage() {
       scale: 1,
       transition: {
         duration: 0.8,
-        ease: [0.6, 0.05, 0.01, 0.9]
-      }
-    }
+        ease: [0.6, 0.05, 0.01, 0.9],
+      },
+    },
   };
 
   const contentVariants: Variants = {
@@ -45,9 +45,9 @@ function LandingPage() {
       x: 0,
       transition: {
         duration: 0.8,
-        ease: [0.6, 0.05, 0.01, 0.9]
-      }
-    }
+        ease: [0.6, 0.05, 0.01, 0.9],
+      },
+    },
   };
 
   const headingVariants: Variants = {
@@ -57,9 +57,9 @@ function LandingPage() {
       y: 0,
       transition: {
         duration: 0.6,
-        ease: [0.6, 0.05, 0.01, 0.9]
-      }
-    }
+        ease: [0.6, 0.05, 0.01, 0.9],
+      },
+    },
   };
 
   const buttonVariants: Variants = {
@@ -70,9 +70,9 @@ function LandingPage() {
       y: 0,
       transition: {
         duration: 0.5,
-        ease: [0.6, 0.05, 0.01, 0.9]
-      }
-    }
+        ease: [0.6, 0.05, 0.01, 0.9],
+      },
+    },
   };
 
   return (
@@ -80,21 +80,24 @@ function LandingPage() {
       {/* Subtle animated background gradients */}
       <div className="fixed inset-0 opacity-20">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#016BFF] rounded-full filter blur-[120px] animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#4BBEBB] rounded-full filter blur-[120px] animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div
+          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#4BBEBB] rounded-full filter blur-[120px] animate-pulse"
+          style={{ animationDelay: "1s" }}
+        ></div>
       </div>
 
       {/* Navbar */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className='bg-transparent relative z-10'
+        className="bg-transparent relative z-10"
       >
-        <Navbar/>
+        <Navbar />
       </motion.div>
 
       {/* Main Content - Perfectly centered */}
-      <motion.div 
+      <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -133,7 +136,7 @@ function LandingPage() {
         </motion.div>
 
         {/* Content Section */}
-        <motion.div 
+        <motion.div
           variants={contentVariants}
           className="
             flex flex-col 
@@ -161,7 +164,7 @@ function LandingPage() {
           </motion.div>
 
           {/* Main Heading */}
-          <motion.h1 
+          <motion.h1
             variants={headingVariants}
             className="
               text-5xl sm:text-5xl md:text-6xl lg:text-7xl
@@ -178,7 +181,7 @@ function LandingPage() {
           </motion.h1>
 
           {/* Subtitle */}
-          <motion.h2 
+          <motion.h2
             variants={headingVariants}
             className="
               text-xl sm:text-2xl md:text-3xl 
@@ -190,9 +193,9 @@ function LandingPage() {
           >
             Your AI Journal & Assistant
           </motion.h2>
-        
+
           {/* Description */}
-          <motion.p 
+          <motion.p
             variants={headingVariants}
             className="
               text-gray-400
@@ -202,9 +205,11 @@ function LandingPage() {
               leading-relaxed
             "
           >
-            Transform your daily reflections into profound insights with intelligent AI assistance. Track goals, analyze progress, and unlock personal growth.
+            Transform your daily reflections into profound insights with
+            intelligent AI assistance. Track goals, analyze progress, and unlock
+            personal growth.
           </motion.p>
-          
+
           {/* CTA Buttons */}
           <motion.div
             variants={buttonVariants}
@@ -212,13 +217,13 @@ function LandingPage() {
           >
             {/* Primary CTA */}
             <motion.div
-              whileHover={{ 
+              whileHover={{
                 scale: 1.05,
-                transition: { duration: 0.2 }
+                transition: { duration: 0.2 },
               }}
               whileTap={{ scale: 0.98 }}
             >
-              <Button 
+              <Button
                 onClick={handleGetStarted}
                 className="
                   w-full sm:w-auto
@@ -245,14 +250,19 @@ function LandingPage() {
 
             {/* Secondary CTA */}
             <motion.div
-              whileHover={{ 
+              whileHover={{
                 scale: 1.05,
-                transition: { duration: 0.2 }
+                transition: { duration: 0.2 },
               }}
               whileTap={{ scale: 0.98 }}
             >
-              <Button 
-                onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
+              <Button
+                onClick={() =>
+                  window.scrollTo({
+                    top: document.body.scrollHeight,
+                    behavior: "smooth",
+                  })
+                }
                 variant="outline"
                 className="
                   w-full sm:w-auto
@@ -279,8 +289,7 @@ function LandingPage() {
           <motion.div
             variants={headingVariants}
             className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 mt-8 text-gray-400 text-sm"
-          >
-          </motion.div>
+          ></motion.div>
         </motion.div>
       </motion.div>
     </div>

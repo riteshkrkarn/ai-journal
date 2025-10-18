@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Send, Search, MoreVertical, ArrowLeft, Users } from "lucide-react";
 import { getToken } from "../utils/auth";
 import { useNavigate } from "react-router-dom";
@@ -31,6 +31,7 @@ interface Message {
   text: string;
   timestamp: string;
   isCurrentUser: boolean;
+  isTyping?: boolean;
 }
 
 // Add props interface for TeamSpace component
@@ -49,7 +50,7 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [ws, setWs] = useState<WebSocket | null>(null);
+  const wsRef = useRef<WebSocket | null>(null); // Use ref instead of state
   const [isConnected, setIsConnected] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState("");
@@ -134,24 +135,29 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
 
   // Connect to team WebSocket when a team is selected
   useEffect(() => {
-    if (!selectedTeam) {
-      // Disconnect if no team selected
-      if (ws) {
-        ws.close();
-        setWs(null);
-        setIsConnected(false);
-      }
+    if (!selectedTeam?.id) {
+      console.log("[Team Chat] No team selected, skipping connection");
       return;
     }
 
+    console.log("[Team Chat] Setting up WebSocket for team:", selectedTeam.id);
+
     // Create WebSocket connection (same endpoint as personal chat)
     const websocket = new WebSocket("ws://localhost:3000/ws");
+    let streamBuffer = ""; // Local buffer for streaming messages
 
     websocket.onopen = () => {
       console.log("[Team Chat] Connected");
 
       // Authenticate with team context
       const token = getToken();
+      if (!token) {
+        console.error("[Team Chat] No auth token available");
+        websocket.close();
+        return;
+      }
+
+      console.log("[Team Chat] Sending auth with teamId:", selectedTeam.id);
       websocket.send(
         JSON.stringify({
           type: "auth",
@@ -165,39 +171,46 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
       const data = JSON.parse(event.data);
       console.log("[Team WS] Received:", data);
 
-      if (data.type === "authenticated") {
+      if (data.type === "auth" && data.status === "authenticated") {
         setIsConnected(true);
         console.log("[Team WS] Authenticated for team:", selectedTeam.name);
       } else if (data.type === "message") {
-        // User message echo
+        // AI response - use typing effect
+        setIsStreaming(false);
+        const newMessage: Message = {
+          id: Date.now().toString(),
+          senderId: "ai",
+          senderName: "Team Assistant",
+          text: data.content,
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          isCurrentUser: false,
+        };
+
+        // Add actual response with typing effect
         setMessages((prev) => [
           ...prev,
-          {
-            id: Date.now().toString(),
-            senderId: "user",
-            senderName: "You",
-            text: data.content,
-            timestamp: new Date().toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-            isCurrentUser: true,
-          },
+          { ...newMessage, text: "", isTyping: true },
         ]);
+        simulateTyping(data.content, newMessage.id);
       } else if (data.type === "stream") {
         // AI streaming response
         setIsStreaming(true);
-        setStreamingMessage((prev) => prev + data.content);
+        streamBuffer += data.content;
+        setStreamingMessage(streamBuffer);
       } else if (data.type === "stream_end") {
         // Stream complete
         setIsStreaming(false);
+        const finalMessage = streamBuffer + data.content;
         setMessages((prev) => [
           ...prev,
           {
             id: Date.now().toString(),
             senderId: "ai",
             senderName: "Team Assistant",
-            text: streamingMessage + data.content,
+            text: finalMessage,
             timestamp: new Date().toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
@@ -205,6 +218,7 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
             isCurrentUser: false,
           },
         ]);
+        streamBuffer = "";
         setStreamingMessage("");
       } else if (data.type === "error") {
         console.error("[Team WS] Error:", data.error);
@@ -233,15 +247,21 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
     websocket.onclose = () => {
       console.log("[Team WS] Disconnected");
       setIsConnected(false);
+      wsRef.current = null;
     };
 
-    setWs(websocket);
+    wsRef.current = websocket;
 
     // Cleanup on unmount or team change
     return () => {
-      websocket.close();
+      console.log("[Team Chat] Cleaning up connection");
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
     };
-  }, [selectedTeam, ws, streamingMessage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTeam?.id]); // Only depend on team ID, not the whole object to prevent reconnection loops
 
   // Get initials for avatar
   const getInitials = (name: string): string => {
@@ -309,19 +329,98 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
     }
   };
 
+  // Simulate typing effect for AI responses
+  const simulateTyping = (text: string, messageId: string) => {
+    let currentText = "";
+    const words = text.split(" ");
+    let wordIndex = 0;
+
+    const typingInterval = setInterval(() => {
+      if (wordIndex < words.length) {
+        currentText += (wordIndex > 0 ? " " : "") + words[wordIndex];
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === messageId
+              ? { ...msg, text: currentText, isTyping: true }
+              : msg
+          )
+        );
+        wordIndex++;
+      } else {
+        clearInterval(typingInterval);
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === messageId ? { ...msg, isTyping: false } : msg
+          )
+        );
+      }
+    }, 50);
+  };
+
   // Handle send message
   const handleSendMessage = () => {
-    if (messageInput.trim() === "" || !ws || !isConnected) return;
+    console.log("[Team Chat] handleSendMessage called");
+    console.log("[Team Chat] messageInput:", messageInput);
+    console.log("[Team Chat] ws:", wsRef.current ? "exists" : "null");
+    console.log("[Team Chat] isConnected:", isConnected);
+    console.log("[Team Chat] isStreaming:", isStreaming);
+
+    if (messageInput.trim() === "") {
+      console.log("[Team Chat] Message is empty, returning");
+      return;
+    }
+    if (!wsRef.current) {
+      console.log("[Team Chat] WebSocket is null, returning");
+      return;
+    }
+    if (!isConnected) {
+      console.log("[Team Chat] Not connected, returning");
+      return;
+    }
+    if (isStreaming) {
+      console.log("[Team Chat] Already streaming, returning");
+      return;
+    }
+
+    const userMessage = messageInput.trim();
+    console.log("[Team Chat] Sending message:", userMessage);
+
+    // Add user message to UI immediately
+    setMessages((prev) => {
+      console.log("[Team Chat] Adding message to UI");
+      return [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          senderId: "user",
+          senderName: "You",
+          text: userMessage,
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          isCurrentUser: true,
+        },
+      ];
+    });
 
     // Send message through WebSocket
-    ws.send(
-      JSON.stringify({
-        type: "message",
-        content: messageInput,
-      })
-    );
+    try {
+      console.log("[Team Chat] Sending via WebSocket...");
+      wsRef.current.send(
+        JSON.stringify({
+          type: "chat",
+          message: userMessage,
+        })
+      );
+      console.log("[Team Chat] Message sent successfully");
+    } catch (error) {
+      console.error("[Team Chat] Error sending message:", error);
+    }
 
     setMessageInput("");
+    setIsStreaming(true); // Expect AI response
+    console.log("[Team Chat] handleSendMessage complete");
   };
 
   // Remove team member
@@ -579,6 +678,9 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
                       >
                         <p className="text-xs sm:text-sm leading-relaxed break-words">
                           {message.text}
+                          {message.isTyping && (
+                            <span className="inline-block w-0.5 h-4 bg-white ml-1 animate-pulse"></span>
+                          )}
                         </p>
                         <p
                           className={`text-xs mt-1 ${
@@ -593,6 +695,38 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
                     </div>
                   </div>
                 ))}
+
+                {/* Loading indicator when waiting for response */}
+                {isStreaming && !streamingMessage && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[85%] sm:max-w-[75%] md:max-w-[70%] mr-4 sm:mr-8 md:mr-12">
+                      <p className="text-xs text-gray-400 mb-1 ml-2">
+                        Team Assistant
+                      </p>
+                      <div className="rounded-2xl p-2.5 sm:p-3 bg-gray-800/60 backdrop-blur-sm border border-gray-700/50">
+                        <div className="flex items-center gap-2">
+                          <div className="flex space-x-1">
+                            <div
+                              className="w-2 h-2 bg-[#4BBEBB] rounded-full animate-bounce"
+                              style={{ animationDelay: "0ms" }}
+                            ></div>
+                            <div
+                              className="w-2 h-2 bg-[#4BBEBB] rounded-full animate-bounce"
+                              style={{ animationDelay: "150ms" }}
+                            ></div>
+                            <div
+                              className="w-2 h-2 bg-[#4BBEBB] rounded-full animate-bounce"
+                              style={{ animationDelay: "300ms" }}
+                            ></div>
+                          </div>
+                          <span className="text-xs sm:text-sm text-gray-400">
+                            AI is thinking...
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Streaming AI Response */}
                 {isStreaming && streamingMessage && (
@@ -639,7 +773,10 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
                 className="flex-1 bg-gray-800/60 border border-gray-700/50 rounded-xl px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4BBEBB]/50 disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <button
-                onClick={handleSendMessage}
+                onClick={() => {
+                  console.log("[Team Chat] Send button clicked");
+                  handleSendMessage();
+                }}
                 disabled={!messageInput.trim() || !isConnected || isStreaming}
                 className="bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl px-4 sm:px-6 py-2 sm:py-3 font-semibold transition-all flex items-center gap-2"
               >

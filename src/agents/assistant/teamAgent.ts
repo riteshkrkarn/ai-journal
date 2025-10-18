@@ -18,18 +18,26 @@ dotenv.config();
  * @param teamId - Team ID for context
  */
 export async function teamAgent(userId: string, teamId: string) {
+  console.log(`[TEAM AGENT] Initializing for user ${userId}, team ${teamId}`);
   const today = new Date().toISOString().split("T")[0];
 
   // Check if user is a team member first
+  console.log(`[TEAM AGENT] Checking team membership...`);
   const isMember = await isTeamMember(userId, teamId);
   if (!isMember) {
+    console.error(
+      `[TEAM AGENT] User ${userId} is not a member of team ${teamId}`
+    );
     throw new Error("User is not a member of this team");
   }
+  console.log(`[TEAM AGENT] User is a member`);
 
   // Check if user is team lead
+  console.log(`[TEAM AGENT] Checking if user is lead...`);
   const members = await getTeamMembers(teamId);
   const currentMember = members.find((m) => m.user_id === userId);
   const isLead = currentMember?.role === "lead";
+  console.log(`[TEAM AGENT] User is ${isLead ? "LEAD" : "MEMBER"}`);
 
   // ===== TEAM JOURNAL TOOLS =====
 
@@ -168,8 +176,7 @@ export async function teamAgent(userId: string, teamId: string) {
       // Check if user is lead
       if (!isLead) {
         return {
-          error:
-            "You are not the team lead. Only the lead can set team goals.",
+          error: "You are not the team lead. Only the lead can set team goals.",
         };
       }
 
@@ -213,7 +220,7 @@ export async function teamAgent(userId: string, teamId: string) {
     },
   });
 
-  return await AgentBuilder.create("team_agent")
+  const teamAgentInstance = await AgentBuilder.create("team_agent")
     .withModel("gemini-2.0-flash-exp")
     .withInstruction(
       `You are a team collaboration assistant. Today is ${today}.
@@ -266,4 +273,7 @@ Be helpful, collaborative, and focus on team success!`
       listTeamGoals
     )
     .build();
+
+  console.log(`[TEAM AGENT] Agent built successfully for team ${teamId}`);
+  return teamAgentInstance;
 }

@@ -107,24 +107,41 @@ export function setupWebSocket(server: HTTPServer) {
           const context = ws.teamId ? ` (Team: ${ws.teamId})` : "";
           console.log(`[WS] User ${ws.userId}${context}: ${userMessage}`);
 
-          // Initialize agent based on context (team or personal)
-          const { runner } = ws.teamId
-            ? await teamAgent(ws.userId, ws.teamId)
-            : await journalAgent(ws.userId);
+          try {
+            // Initialize agent based on context (team or personal)
+            console.log(
+              `[WS] Initializing ${ws.teamId ? "team" : "personal"} agent...`
+            );
+            const { runner } = ws.teamId
+              ? await teamAgent(ws.userId, ws.teamId)
+              : await journalAgent(ws.userId);
 
-          // Get AI response
-          const response = await runner.ask(userMessage);
+            console.log(`[WS] Agent initialized successfully`);
 
-          console.log(`[WS] Response: ${response.substring(0, 100)}...`);
+            // Get AI response
+            const response = await runner.ask(userMessage);
 
-          // Send response back
-          ws.send(
-            JSON.stringify({
-              type: "message",
-              content: response,
-              timestamp: new Date().toISOString(),
-            })
-          );
+            console.log(`[WS] Response: ${response.substring(0, 100)}...`);
+
+            // Send response back
+            ws.send(
+              JSON.stringify({
+                type: "message",
+                content: response,
+                timestamp: new Date().toISOString(),
+              })
+            );
+          } catch (agentError: any) {
+            console.error("[WS] Agent error:", agentError.message);
+            console.error("[WS] Agent error stack:", agentError.stack);
+            ws.send(
+              JSON.stringify({
+                type: "error",
+                error: `Agent error: ${agentError.message}`,
+              })
+            );
+            return;
+          }
         }
       } catch (error: any) {
         console.error("[WS] Error:", error);
