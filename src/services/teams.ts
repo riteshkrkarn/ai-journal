@@ -114,7 +114,7 @@ export async function getTeamMembers(teamId: string) {
   const userIds = membersData.map((m) => m.user_id);
   const { data: usersData, error: usersError } = await supabaseAdmin
     .from("users")
-    .select("id, email, full_name")
+    .select("id, email, name")
     .in("id", userIds);
 
   if (usersError)
@@ -131,7 +131,7 @@ export async function getTeamMembers(teamId: string) {
       joined_at: member.joined_at,
       role: member.role,
       email: userDetails?.email || null,
-      full_name: userDetails?.full_name || null,
+      full_name: userDetails?.name || null,
     };
   });
 }
