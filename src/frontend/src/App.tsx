@@ -5,6 +5,8 @@ import ChatBot from "./pages/ChatBot";
 import TeamSpace from "./pages/TeamSpace";
 import CreateJoinTeam from "./pages/CreateJoinTeam";
 import { hasAuth } from "./utils/auth";
+import About from './pages/About'
+
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = hasAuth();
@@ -65,6 +67,13 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+      <Route 
+          path="/about" 
+          element={
+            <ProtectedRoute>
+              <About />
+            </ProtectedRoute>
+          }/>
       </Routes>
     </BrowserRouter>
   );
