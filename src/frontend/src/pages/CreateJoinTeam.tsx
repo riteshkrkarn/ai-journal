@@ -11,7 +11,7 @@ type CreateTeamFormData = {
 };
 
 type JoinTeamFormData = {
-  teamId: string;
+  inviteCode: string;
 };
 
 const CreateJoinTeam: React.FC = () => {
@@ -61,15 +61,14 @@ const CreateJoinTeam: React.FC = () => {
 
     try {
       const token = getToken();
-      const response = await fetch(
-        `http://localhost:3000/teams/${data.teamId}/join`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(`http://localhost:3000/teams/join`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ inviteCode: data.inviteCode }),
+      });
 
       const result = await response.json();
 
@@ -200,20 +199,30 @@ const CreateJoinTeam: React.FC = () => {
             onSubmit={joinForm.handleSubmit(onJoinSubmit)}
             className="space-y-5"
           >
-            {/* Team ID Input */}
+            {/* Invite Code Input */}
             <div>
               <input
                 type="text"
-                placeholder="Team ID"
-                aria-label="Team ID"
-                {...joinForm.register("teamId", {
-                  required: "Team ID is required",
+                placeholder="Invite Code (e.g., ABC123)"
+                aria-label="Invite Code"
+                maxLength={6}
+                {...joinForm.register("inviteCode", {
+                  required: "Invite code is required",
+                  pattern: {
+                    value: /^[A-Z0-9]{6}$/i,
+                    message:
+                      "Invite code must be 6 characters (letters and numbers)",
+                  },
                 })}
-                className="w-full p-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-[#4BBEBB] focus:border-transparent outline-none transition duration-200 shadow-inner"
+                onChange={(e) => {
+                  // Auto-uppercase the input
+                  e.target.value = e.target.value.toUpperCase();
+                }}
+                className="w-full p-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-[#4BBEBB] focus:border-transparent outline-none transition duration-200 shadow-inner uppercase tracking-wider text-center text-lg font-mono"
               />
-              {joinForm.formState.errors.teamId && (
+              {joinForm.formState.errors.inviteCode && (
                 <p className="text-red-400 text-sm mt-1">
-                  {joinForm.formState.errors.teamId.message}
+                  {joinForm.formState.errors.inviteCode.message}
                 </p>
               )}
             </div>
@@ -227,7 +236,7 @@ const CreateJoinTeam: React.FC = () => {
             </button>
 
             <p className="text-gray-400 text-sm text-center mt-4">
-              Ask your team admin for the Team ID to join.
+              Ask your team lead for the 6-character invite code.
             </p>
           </form>
         )}

@@ -9,7 +9,7 @@ interface TeamMember {
   id: string;
   email: string;
   name: string;
-  role: "owner" | "admin" | "member";
+  role: "lead" | "member";
   avatar?: string;
   joinedAt: Date;
   status: "active" | "pending";
@@ -46,12 +46,13 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
   const [showTeamInfo, setShowTeamInfo] = useState(false);
   const [messageInput, setMessageInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [emailInput, setEmailInput] = useState("");
-  const [pendingEmails, setPendingEmails] = useState<string[]>([]);
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
-  const [showTeamCode, setShowTeamCode] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [ws, setWs] = useState<WebSocket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingMessage, setStreamingMessage] = useState("");
 
   // Fetch teams from API
   useEffect(() => {
@@ -131,6 +132,117 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
     fetchTeams();
   }, []);
 
+  // Connect to team WebSocket when a team is selected
+  useEffect(() => {
+    if (!selectedTeam) {
+      // Disconnect if no team selected
+      if (ws) {
+        ws.close();
+        setWs(null);
+        setIsConnected(false);
+      }
+      return;
+    }
+
+    // Create WebSocket connection (same endpoint as personal chat)
+    const websocket = new WebSocket("ws://localhost:3000/ws");
+
+    websocket.onopen = () => {
+      console.log("[Team Chat] Connected");
+
+      // Authenticate with team context
+      const token = getToken();
+      websocket.send(
+        JSON.stringify({
+          type: "auth",
+          token,
+          teamId: selectedTeam.id, // This tells the backend to use team agent
+        })
+      );
+    };
+
+    websocket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log("[Team WS] Received:", data);
+
+      if (data.type === "authenticated") {
+        setIsConnected(true);
+        console.log("[Team WS] Authenticated for team:", selectedTeam.name);
+      } else if (data.type === "message") {
+        // User message echo
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            senderId: "user",
+            senderName: "You",
+            text: data.content,
+            timestamp: new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            isCurrentUser: true,
+          },
+        ]);
+      } else if (data.type === "stream") {
+        // AI streaming response
+        setIsStreaming(true);
+        setStreamingMessage((prev) => prev + data.content);
+      } else if (data.type === "stream_end") {
+        // Stream complete
+        setIsStreaming(false);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            senderId: "ai",
+            senderName: "Team Assistant",
+            text: streamingMessage + data.content,
+            timestamp: new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            isCurrentUser: false,
+          },
+        ]);
+        setStreamingMessage("");
+      } else if (data.type === "error") {
+        console.error("[Team WS] Error:", data.error);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            senderId: "system",
+            senderName: "System",
+            text: `Error: ${data.error}`,
+            timestamp: new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            isCurrentUser: false,
+          },
+        ]);
+      }
+    };
+
+    websocket.onerror = (error) => {
+      console.error("[Team WS] Error:", error);
+      setIsConnected(false);
+    };
+
+    websocket.onclose = () => {
+      console.log("[Team WS] Disconnected");
+      setIsConnected(false);
+    };
+
+    setWs(websocket);
+
+    // Cleanup on unmount or team change
+    return () => {
+      websocket.close();
+    };
+  }, [selectedTeam, ws, streamingMessage]);
+
   // Get initials for avatar
   const getInitials = (name: string): string => {
     return name
@@ -199,85 +311,17 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
 
   // Handle send message
   const handleSendMessage = () => {
-    if (messageInput.trim() === "") return;
+    if (messageInput.trim() === "" || !ws || !isConnected) return;
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      senderId: "1",
-      senderName: "You",
-      text: messageInput,
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      isCurrentUser: true,
-    };
-
-    setMessages([...messages, newMessage]);
-    setMessageInput("");
-  };
-
-  // Add email to pending list
-  const handleAddEmail = () => {
-    const email = emailInput.trim().toLowerCase();
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      alert("Please enter a valid email address");
-      return;
-    }
-
-    if (selectedTeam) {
-      const emailExists =
-        selectedTeam.members.some((member) => member.email === email) ||
-        pendingEmails.includes(email);
-
-      if (emailExists) {
-        alert("This email is already added");
-        return;
-      }
-    }
-
-    setPendingEmails([...pendingEmails, email]);
-    setEmailInput("");
-  };
-
-  // Remove email from pending list
-  const handleRemovePendingEmail = (email: string) => {
-    setPendingEmails(pendingEmails.filter((e) => e !== email));
-  };
-
-  // Send invites
-  const handleSendInvites = () => {
-    if (pendingEmails.length === 0 || !selectedTeam) return;
-
-    const newMembers: TeamMember[] = pendingEmails.map((email, index) => ({
-      id: Date.now().toString() + index,
-      email: email,
-      name: email
-        .split("@")[0]
-        .replace(/[._-]/g, " ")
-        .replace(/\b\w/g, (l) => l.toUpperCase()),
-      role: "member",
-      joinedAt: new Date(),
-      status: "pending",
-    }));
-
-    const updatedTeams = teams.map((team) =>
-      team.id === selectedTeam.id
-        ? { ...team, members: [...team.members, ...newMembers] }
-        : team
+    // Send message through WebSocket
+    ws.send(
+      JSON.stringify({
+        type: "message",
+        content: messageInput,
+      })
     );
 
-    setTeams(updatedTeams);
-    setSelectedTeam({
-      ...selectedTeam,
-      members: [...selectedTeam.members, ...newMembers],
-    });
-    setPendingEmails([]);
-    setIsAddingMember(false);
-
-    alert(`Invites sent to ${newMembers.length} member(s)!`);
+    setMessageInput("");
   };
 
   // Remove team member
@@ -291,22 +335,6 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
     const updatedMembers = selectedTeam.members.filter(
       (member) => member.id !== memberId
     );
-    const updatedTeams = teams.map((team) =>
-      team.id === selectedTeam.id ? { ...team, members: updatedMembers } : team
-    );
-
-    setTeams(updatedTeams);
-    setSelectedTeam({ ...selectedTeam, members: updatedMembers });
-  };
-
-  // Change member role
-  const handleChangeRole = (memberId: string, newRole: "admin" | "member") => {
-    if (!selectedTeam) return;
-
-    const updatedMembers = selectedTeam.members.map((member) =>
-      member.id === memberId ? { ...member, role: newRole } : member
-    );
-
     const updatedTeams = teams.map((team) =>
       team.id === selectedTeam.id ? { ...team, members: updatedMembers } : team
     );
@@ -565,24 +593,54 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
                     </div>
                   </div>
                 ))}
+
+                {/* Streaming AI Response */}
+                {isStreaming && streamingMessage && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[85%] sm:max-w-[75%] md:max-w-[70%] mr-4 sm:mr-8 md:mr-12">
+                      <p className="text-xs text-gray-400 mb-1 ml-2">
+                        Team Assistant
+                      </p>
+                      <div className="rounded-2xl p-2.5 sm:p-3 bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 text-white">
+                        <p className="text-xs sm:text-sm leading-relaxed break-words">
+                          {streamingMessage}
+                          <span className="inline-block w-1 h-4 bg-[#4BBEBB] ml-1 animate-pulse"></span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
           {/* Message Input */}
           <div className="bg-[#1a1a1a]/60 backdrop-blur-xl border-t border-gray-800/50 p-3 sm:p-4">
+            {/* Connection Status */}
+            {!isConnected && (
+              <div className="max-w-4xl mx-auto mb-2 text-center">
+                <p className="text-xs text-yellow-500">
+                  Connecting to team chat...
+                </p>
+              </div>
+            )}
             <div className="max-w-4xl mx-auto flex gap-2 sm:gap-3">
               <input
                 type="text"
                 value={messageInput}
                 onChange={(e) => setMessageInput(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                placeholder="Write your journal entry..."
-                className="flex-1 bg-gray-800/60 border border-gray-700/50 rounded-xl px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4BBEBB]/50"
+                placeholder={
+                  isConnected
+                    ? "Ask AI to save journals, search entries, set goals..."
+                    : "Connecting..."
+                }
+                disabled={!isConnected || isStreaming}
+                className="flex-1 bg-gray-800/60 border border-gray-700/50 rounded-xl px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4BBEBB]/50 disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <button
                 onClick={handleSendMessage}
-                disabled={!messageInput.trim()}
+                disabled={!messageInput.trim() || !isConnected || isStreaming}
                 className="bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl px-4 sm:px-6 py-2 sm:py-3 font-semibold transition-all flex items-center gap-2"
               >
                 <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -600,18 +658,8 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
           setShowTeamInfo={setShowTeamInfo}
           isAddingMember={isAddingMember}
           setIsAddingMember={setIsAddingMember}
-          showTeamCode={showTeamCode}
-          setShowTeamCode={setShowTeamCode}
-          emailInput={emailInput}
-          setEmailInput={setEmailInput}
-          pendingEmails={pendingEmails}
-          setPendingEmails={setPendingEmails}
           getInitials={getInitials}
           getAvatarColor={getAvatarColor}
-          handleAddEmail={handleAddEmail}
-          handleRemovePendingEmail={handleRemovePendingEmail}
-          handleSendInvites={handleSendInvites}
-          handleChangeRole={handleChangeRole}
           handleRemoveMember={handleRemoveMember}
         />
       )}

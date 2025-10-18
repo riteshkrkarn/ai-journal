@@ -7,6 +7,8 @@ import {
   getUserTeams,
   getTeamMembers,
   leaveTeam,
+  getTeamByInviteCode,
+  getTeamInviteCode,
 } from "../../services/teams";
 import { supabaseAdmin } from "../../services/supabase";
 
@@ -29,8 +31,8 @@ router.post("/", async (req: Request, res: Response) => {
 
     const team = await createTeam(userId, name);
 
-    // Add creator as first member
-    await addTeamMember(team.id, userId);
+    // Add creator as first member with "lead" role
+    await addTeamMember(team.id, userId, "lead");
 
     res.status(201).json({
       message: "Team created successfully",
@@ -86,7 +88,67 @@ router.get("/:id/members", async (req: Request, res: Response) => {
 });
 
 /**
- * POST /teams/:id/join - Join team by ID
+ * GET /teams/:id/invite-code - Get team invite code (lead only)
+ */
+router.get("/:id/invite-code", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: "Team ID is required" });
+    }
+
+    const inviteCode = await getTeamInviteCode(id, userId);
+
+    res.json({
+      teamId: id,
+      inviteCode,
+    });
+  } catch (error: any) {
+    console.error("[TEAMS] Get invite code error:", error);
+    if (error.message.includes("Only the team lead")) {
+      return res.status(403).json({ error: error.message });
+    }
+    res
+      .status(500)
+      .json({ error: error.message || "Failed to get invite code" });
+  }
+});
+
+/**
+ * POST /teams/join - Join team by invite code
+ */
+router.post("/join", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { inviteCode } = req.body;
+
+    if (!inviteCode) {
+      return res.status(400).json({ error: "Invite code is required" });
+    }
+
+    // Get team by invite code
+    const team = await getTeamByInviteCode(inviteCode);
+
+    // Add user as member
+    await addTeamMember(team.id, userId, "member");
+
+    res.json({
+      message: "Joined team successfully",
+      team,
+    });
+  } catch (error: any) {
+    console.error("[TEAMS] Join error:", error);
+    if (error.message.includes("Team not found")) {
+      return res.status(404).json({ error: "Invalid invite code" });
+    }
+    res.status(500).json({ error: error.message || "Failed to join team" });
+  }
+});
+
+/**
+ * POST /teams/:id/join - Join team by ID (deprecated, kept for backwards compatibility)
  */
 router.post("/:id/join", async (req: Request, res: Response) => {
   try {

@@ -1,10 +1,12 @@
 import { Server as HTTPServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { journalAgent } from "../../agents/assistant/journalAgent";
+import { teamAgent } from "../../agents/assistant/teamAgent";
 import { supabaseAdmin } from "../../services/supabase";
 
 interface AuthenticatedWebSocket extends WebSocket {
   userId?: string;
+  teamId?: string;
   isAuthenticated?: boolean;
 }
 
@@ -21,7 +23,7 @@ export function setupWebSocket(server: HTTPServer) {
 
         // Handle authentication
         if (message.type === "auth") {
-          const { token } = message;
+          const { token, teamId } = message;
 
           if (!token) {
             ws.send(
@@ -50,16 +52,19 @@ export function setupWebSocket(server: HTTPServer) {
               return;
             }
 
-            // Store userId in WebSocket connection
+            // Store userId and optional teamId in WebSocket connection
             ws.userId = user.id;
+            ws.teamId = teamId || undefined;
             ws.isAuthenticated = true;
 
-            console.log(`[WS] User authenticated: ${user.id}`);
+            const context = teamId ? ` for team ${teamId}` : "";
+            console.log(`[WS] User authenticated: ${user.id}${context}`);
             ws.send(
               JSON.stringify({
                 type: "auth",
                 status: "authenticated",
                 userId: user.id,
+                teamId: teamId || null,
               })
             );
           } catch (authError: any) {
@@ -99,10 +104,13 @@ export function setupWebSocket(server: HTTPServer) {
             return;
           }
 
-          console.log(`[WS] User ${ws.userId}: ${userMessage}`);
+          const context = ws.teamId ? ` (Team: ${ws.teamId})` : "";
+          console.log(`[WS] User ${ws.userId}${context}: ${userMessage}`);
 
-          // Initialize agent with userId
-          const { runner } = await journalAgent(ws.userId);
+          // Initialize agent based on context (team or personal)
+          const { runner } = ws.teamId
+            ? await teamAgent(ws.userId, ws.teamId)
+            : await journalAgent(ws.userId);
 
           // Get AI response
           const response = await runner.ask(userMessage);
