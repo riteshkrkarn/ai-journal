@@ -14,6 +14,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import TeamSpace from "./TeamSpace";
 import GoalsPage from "./GoalsPage";
+import CalendarPage from "./CalendarPage";
 import { logout } from "../utils/auth";
 
 const Logo: React.FC = () => (
@@ -42,9 +43,9 @@ const ChatBot: React.FC = () => {
   const [inputMessage, setInputMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState<"chat" | "team" | "goals">(
-    "chat"
-  );
+  const [currentPage, setCurrentPage] = useState<
+    "chat" | "team" | "goals" | "calendar"
+  >("chat");
   const [isConnected, setIsConnected] = useState(false);
   const [isWaitingResponse, setIsWaitingResponse] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -342,7 +343,7 @@ const ChatBot: React.FC = () => {
     }
   };
 
-  const navigateToPage = (page: "chat" | "team" | "goals") => {
+  const navigateToPage = (page: "chat" | "team" | "goals" | "calendar") => {
     setCurrentPage(page);
     if (window.innerWidth < 768) {
       setIsSidebarOpen(false);
@@ -368,6 +369,10 @@ const ChatBot: React.FC = () => {
 
   if (currentPage === "goals") {
     return <GoalsPage onBack={handleBackToChat} />;
+  }
+
+  if (currentPage === "calendar") {
+    return <CalendarPage onBack={handleBackToChat} />;
   }
 
   return (
@@ -446,7 +451,10 @@ const ChatBot: React.FC = () => {
             </span>
           </button>
 
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800/50 transition-all group">
+          <button
+            onClick={() => navigateToPage("calendar")}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800/50 transition-all group"
+          >
             <Calendar className="w-5 h-5 text-gray-400 group-hover:text-[#4BBEBB] flex-shrink-0" />
             <span className="text-sm font-medium text-gray-400 group-hover:bg-clip-text group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-[#016BFF] group-hover:to-[#4BBEBB] truncate">
               Calendar
