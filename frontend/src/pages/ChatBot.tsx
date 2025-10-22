@@ -385,9 +385,8 @@ const ChatBot: React.FC = () => {
   if (currentPage === "calendar") {
     return <CalendarPage onBack={handleBackToChat} />;
   }
-
-  return (
-    <div className="h-screen w-full bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex font-['Inter',sans-serif] overflow-hidden m-0 p-0">
+return (
+    <div className="fixed inset-0 w-full bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex font-['Inter',sans-serif] overflow-hidden m-0 p-0">
       {/* Custom scrollbar styles */}
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
@@ -413,6 +412,13 @@ const ChatBot: React.FC = () => {
         .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;
+        }
+        
+        /* Ensure proper mobile height handling */
+        @supports (-webkit-touch-callout: none) {
+          .mobile-safe-height {
+            height: -webkit-fill-available;
+          }
         }
       `}</style>
 
@@ -516,7 +522,7 @@ const ChatBot: React.FC = () => {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col mobile-safe-height overflow-hidden">
         {/* Header */}
         <div className="h-14 sm:h-16 bg-[#1a1a1a]/60 backdrop-blur-xl border-b border-gray-800/50 flex items-center px-3 sm:px-4 flex-shrink-0">
           <button
@@ -534,10 +540,14 @@ const ChatBot: React.FC = () => {
           </h1>
         </div>
 
-        {/* Messages Area with custom black scrollbar */}
+        {/* Messages Area - Scrollable with proper height */}
         <div 
           ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-4"
+          className="flex-1 overflow-y-auto custom-scrollbar"
+          style={{ 
+            scrollBehavior: 'auto',
+            minHeight: 0
+          }}
         >
           {!isConnected && (
             <div className="fixed top-16 sm:top-20 right-2 sm:right-4 bg-yellow-900/80 text-yellow-200 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm backdrop-blur-sm border border-yellow-500/30 z-50">
@@ -546,8 +556,8 @@ const ChatBot: React.FC = () => {
           )}
 
           {messages.length === 0 ? (
-            <div className="h-full flex items-center justify-center">
-              <div className="text-center max-w-2xl px-4">
+            <div className="min-h-full flex items-center justify-center p-4">
+              <div className="text-center max-w-2xl">
                 <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 flex items-center justify-center">
                   <img src="/logo-img.png" alt="logo" className="w-10 h-10 sm:w-12 sm:h-12" />
                 </div>
@@ -561,30 +571,83 @@ const ChatBot: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="max-w-3xl mx-auto space-y-3 sm:space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${
-                    message.isUser ? "justify-end" : "justify-start"
-                  }`}
-                >
+            <div className="w-full p-3 sm:p-4">
+              <div className="max-w-3xl mx-auto space-y-3 sm:space-y-4">
+                {messages.map((message) => (
                   <div
-                    className={`max-w-[85%] sm:max-w-[80%] ${
-                      message.isUser ? "ml-8 sm:ml-12" : "mr-8 sm:mr-12"
+                    key={message.id}
+                    className={`flex ${
+                      message.isUser ? "justify-end" : "justify-start"
                     }`}
                   >
-                    {!message.isUser && (
-                      <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
-                        <div
-                          className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            message.isError
-                              ? "bg-red-500/80"
+                    <div
+                      className={`max-w-[85%] sm:max-w-[80%] ${
+                        message.isUser ? "ml-8 sm:ml-12" : "mr-8 sm:mr-12"
+                      }`}
+                    >
+                      {!message.isUser && (
+                        <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
+                          <div
+                            className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                              message.isError
+                                ? "bg-red-500/80"
+                                : message.isSystem
+                                ? "bg-gray-600"
+                                : "bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]"
+                            }`}
+                          >
+                            <svg
+                              className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                            >
+                              <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" />
+                            </svg>
+                          </div>
+                          <span className="text-xs font-medium text-gray-500">
+                            {message.isError
+                              ? "Error"
                               : message.isSystem
-                              ? "bg-gray-600"
-                              : "bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]"
-                          }`}
-                        >
+                              ? "System"
+                              : "ReflectIQ"}
+                          </span>
+                        </div>
+                      )}
+                      <div
+                        className={`rounded-2xl p-3 sm:p-4 ${
+                          message.isUser
+                            ? "bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-white"
+                            : message.isError
+                            ? "bg-red-900/40 backdrop-blur-sm border border-red-500/30 text-red-200"
+                            : message.isSystem
+                            ? "bg-gray-700/40 backdrop-blur-sm border border-gray-600/30 text-gray-300 italic"
+                            : "bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 text-white"
+                        }`}
+                      >
+                        <p className="text-sm sm:text-[15px] leading-relaxed whitespace-pre-wrap break-words">
+                          {message.text}
+                          {message.isTyping && (
+                            <span className="inline-block w-0.5 h-3 sm:h-4 bg-[#4BBEBB] ml-1 animate-pulse"></span>
+                          )}
+                        </p>
+                      </div>
+                      <p
+                        className={`text-xs text-gray-600 mt-1 ${
+                          message.isUser ? "text-right" : "text-left"
+                        }`}
+                      >
+                        {message.timestamp}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+
+                {isWaitingResponse && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[85%] sm:max-w-[80%] mr-8 sm:mr-12">
+                      <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
+                        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] flex items-center justify-center flex-shrink-0">
                           <svg
                             className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white"
                             viewBox="0 0 24 24"
@@ -594,90 +657,42 @@ const ChatBot: React.FC = () => {
                           </svg>
                         </div>
                         <span className="text-xs font-medium text-gray-500">
-                          {message.isError
-                            ? "Error"
-                            : message.isSystem
-                            ? "System"
-                            : "ReflectIQ"}
+                          ReflectIQ
                         </span>
                       </div>
-                    )}
-                    <div
-                      className={`rounded-2xl p-3 sm:p-4 ${
-                        message.isUser
-                          ? "bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-white"
-                          : message.isError
-                          ? "bg-red-900/40 backdrop-blur-sm border border-red-500/30 text-red-200"
-                          : message.isSystem
-                          ? "bg-gray-700/40 backdrop-blur-sm border border-gray-600/30 text-gray-300 italic"
-                          : "bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 text-white"
-                      }`}
-                    >
-                      <p className="text-sm sm:text-[15px] leading-relaxed whitespace-pre-wrap break-words">
-                        {message.text}
-                        {message.isTyping && (
-                          <span className="inline-block w-0.5 h-3 sm:h-4 bg-[#4BBEBB] ml-1 animate-pulse"></span>
-                        )}
-                      </p>
-                    </div>
-                    <p
-                      className={`text-xs text-gray-600 mt-1 ${
-                        message.isUser ? "text-right" : "text-left"
-                      }`}
-                    >
-                      {message.timestamp}
-                    </p>
-                  </div>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
-
-              {isWaitingResponse && (
-                <div className="flex justify-start">
-                  <div className="max-w-[85%] sm:max-w-[80%] mr-8 sm:mr-12">
-                    <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
-                      <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] flex items-center justify-center flex-shrink-0">
-                        <svg
-                          className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                        >
-                          <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" />
-                        </svg>
-                      </div>
-                      <span className="text-xs font-medium text-gray-500">
-                        ReflectIQ
-                      </span>
-                    </div>
-                    <div className="rounded-2xl p-3 sm:p-4 bg-gray-800/60 backdrop-blur-sm border border-gray-700/50">
-                      <div className="flex items-center gap-2">
-                        <div className="flex space-x-1">
-                          <div
-                            className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#4BBEBB] rounded-full animate-bounce"
-                            style={{ animationDelay: "0ms" }}
-                          ></div>
-                          <div
-                            className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#4BBEBB] rounded-full animate-bounce"
-                            style={{ animationDelay: "150ms" }}
-                          ></div>
-                          <div
-                            className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#4BBEBB] rounded-full animate-bounce"
-                            style={{ animationDelay: "300ms" }}
-                          ></div>
+                      <div className="rounded-2xl p-3 sm:p-4 bg-gray-800/60 backdrop-blur-sm border border-gray-700/50">
+                        <div className="flex items-center gap-2">
+                          <div className="flex space-x-1">
+                            <div
+                              className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#4BBEBB] rounded-full animate-bounce"
+                              style={{ animationDelay: "0ms" }}
+                            ></div>
+                            <div
+                              className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#4BBEBB] rounded-full animate-bounce"
+                              style={{ animationDelay: "150ms" }}
+                            ></div>
+                            <div
+                              className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#4BBEBB] rounded-full animate-bounce"
+                              style={{ animationDelay: "300ms" }}
+                            ></div>
+                          </div>
+                          <span className="text-xs sm:text-sm text-gray-400">
+                            AI is thinking...
+                          </span>
                         </div>
-                        <span className="text-xs sm:text-sm text-gray-400">
-                          AI is thinking...
-                        </span>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+                
+                {/* Extra padding at bottom to prevent input covering last message */}
+                <div className="h-4"></div>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Input Area */}
+        {/* Input Area - Fixed at bottom */}
         <div className="bg-[#1a1a1a]/60 backdrop-blur-xl border-t border-gray-800/50 p-3 sm:p-4 flex-shrink-0">
           <div className="max-w-4xl mx-auto flex gap-2 sm:gap-3">
             <input
@@ -696,7 +711,7 @@ const ChatBot: React.FC = () => {
               disabled={
                 !inputMessage.trim() || !isConnected || isWaitingResponse
               }
-              className="bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl sm:rounded-2xl px-4 sm:px-6 py-3 sm:py-4 font-semibold transition-all hover:scale-105 flex items-center justify-center gap-2"
+              className="bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl sm:rounded-2xl px-4 sm:px-6 py-3 sm:py-4 font-semibold transition-all hover:scale-105 flex items-center justify-center gap-2 flex-shrink-0"
             >
               <Send className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
@@ -705,6 +720,5 @@ const ChatBot: React.FC = () => {
       </div>
     </div>
   );
-};
-
+}
 export default ChatBot;
