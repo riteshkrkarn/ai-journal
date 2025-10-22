@@ -76,7 +76,7 @@ function LandingPage() {
   };
 
   return (
-    <div className="h-screen w-full bg-black overflow-hidden flex flex-col font-[Inter,sans-serif] relative">
+    <div className="min-h-screen w-full bg-black overflow-x-hidden flex flex-col font-[Inter,sans-serif] relative">
       {/* Subtle animated background gradients */}
       <div className="fixed inset-0 opacity-20">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#016BFF] rounded-full filter blur-[120px] animate-pulse"></div>
@@ -105,7 +105,7 @@ function LandingPage() {
           flex-1
           flex flex-col items-center justify-center 
           px-4 sm:px-6 md:px-8 lg:px-16
-          py-6 md:py-0
+          py-4 sm:py-6 md:py-0
           md:flex-row md:justify-center md:gap-12 lg:gap-20
           relative z-10
         "
@@ -114,7 +114,7 @@ function LandingPage() {
         <motion.div
           variants={imageVariants}
           whileHover={{ scale: 1.02, rotate: 1 }}
-          className="w-full md:w-auto flex items-center justify-center mb-8 md:mb-0"
+          className="w-full md:w-auto flex items-center justify-center mb-4 sm:mb-6 md:mb-0"
         >
           <div className="relative">
             {/* Enhanced glow effect */}
@@ -124,7 +124,7 @@ function LandingPage() {
               alt="Professional illustration of a journaling interface providing AI insights"
               className="
                 relative
-                w-full max-w-[280px] sm:max-w-[320px] md:max-w-[400px] lg:max-w-[500px]
+                w-full max-w-[200px] xs:max-w-[240px] sm:max-w-[280px] md:max-w-[400px] lg:max-w-[500px]
                 h-auto 
                 object-contain
                 rounded-2xl 
@@ -150,15 +150,15 @@ function LandingPage() {
             variants={headingVariants}
             className="
               inline-flex items-center gap-2 
-              px-4 py-2 mb-5
+              px-3 py-1.5 mb-3 sm:mb-4
               rounded-full
               bg-gradient-to-r from-[#016BFF]/10 to-[#4BBEBB]/10
               border border-[#4BBEBB]/30
               backdrop-blur-sm
             "
           >
-            <Sparkles className="w-4 h-4 text-[#4BBEBB]" />
-            <span className="text-sm font-medium text-gray-300">
+            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-[#4BBEBB]" />
+            <span className="text-xs sm:text-sm font-medium text-gray-300">
               AI-Powered Journaling
             </span>
           </motion.div>
@@ -167,10 +167,10 @@ function LandingPage() {
           <motion.h1
             variants={headingVariants}
             className="
-              text-5xl sm:text-5xl md:text-6xl lg:text-7xl
+              text-4xl xs:text-5xl sm:text-5xl md:text-6xl lg:text-7xl
               font-extrabold 
               leading-tight
-              mb-5
+              mb-3 sm:mb-4
               tracking-tight
             "
           >
@@ -184,10 +184,10 @@ function LandingPage() {
           <motion.h2
             variants={headingVariants}
             className="
-              text-xl sm:text-2xl md:text-3xl 
+              text-lg xs:text-xl sm:text-2xl md:text-3xl 
               font-semibold 
               text-gray-200 
-              mb-6
+              mb-3 sm:mb-4
               tracking-tight
             "
           >
@@ -199,9 +199,9 @@ function LandingPage() {
             variants={headingVariants}
             className="
               text-gray-400
-              mb-8
+              mb-4 sm:mb-6
               max-w-full md:max-w-xl
-              text-base sm:text-lg
+              text-sm xs:text-base sm:text-lg
               leading-relaxed
             "
           >
@@ -213,7 +213,7 @@ function LandingPage() {
           {/* CTA Buttons */}
           <motion.div
             variants={buttonVariants}
-            className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
+            className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto"
           >
             {/* Primary CTA */}
             <motion.div
@@ -227,9 +227,9 @@ function LandingPage() {
                 onClick={handleGetStarted}
                 className="
                   w-full sm:w-auto
-                  px-8 md:px-10
-                  py-5 md:py-6
-                  text-base md:text-lg
+                  px-6 sm:px-8 md:px-10
+                  py-4 sm:py-5 md:py-6
+                  text-sm sm:text-base md:text-lg
                   font-bold 
                   border-none
                   rounded-xl
@@ -244,7 +244,7 @@ function LandingPage() {
                 "
               >
                 Get Started
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
             </motion.div>
 
@@ -257,12 +257,13 @@ function LandingPage() {
               whileTap={{ scale: 0.98 }}
             >
               <Button 
-                  onClick={() => navigate('/about')}  // Changed from scrollTo
-                  variant="outline"
-                  className=" w-full sm:w-auto
-                  px-8 md:px-10
-                  py-5 md:py-6
-                  text-base md:text-lg
+                onClick={() => navigate('/about')}
+                variant="outline"
+                className="
+                  w-full sm:w-auto
+                  px-6 sm:px-8 md:px-10
+                  py-4 sm:py-5 md:py-6
+                  text-sm sm:text-base md:text-lg
                   font-semibold
                   rounded-xl
                   border-2 border-[#4BBEBB]/40
@@ -271,17 +272,18 @@ function LandingPage() {
                   hover:bg-[#4BBEBB]/10
                   hover:border-[#4BBEBB]/60
                   hover:text-white
-                  transition-all duration-300"
-            >
-              Learn More
-            </Button>
+                  transition-all duration-300
+                "
+              >
+                Learn More
+              </Button>
             </motion.div>
           </motion.div>
 
           {/* Social Proof */}
           <motion.div
             variants={headingVariants}
-            className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 mt-8 text-gray-400 text-sm"
+            className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 mt-4 sm:mt-6 text-gray-400 text-sm"
           ></motion.div>
         </motion.div>
       </motion.div>
