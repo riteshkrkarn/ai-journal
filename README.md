@@ -23,7 +23,8 @@ Talk to the AI like a friend. It automatically:
 - **Autonomous Journaling** - Auto-detects and saves daily reflections
 - **Semantic Search** - Find entries by meaning, not keywords (768-dim vectors)
 - **Smart Goal Tracking** - AI monitors progress via journal analysis
-- **Calendar Integration** - Natural language → Google Calendar events
+- **Team Collaboration** - Create teams, share journal entries, and manage team goals
+- **Calendar Integration** - Backend implemented; Frontend integration pending (Google Cloud Console setup)
 - **Real-time Chat** - WebSocket with typing effects and auto-reconnect
 - **Multi-user Auth** - Secure JWT-based authentication
 
@@ -58,9 +59,18 @@ Talk to the AI like a friend. It automatically:
 
 - Journal: `saveEntry`, `fetchEntry`, `searchEntries`, `getSummary`
 - Goals: `setGoal`, `listGoals`, `checkProgress`, `updateStatus`
-- Calendar: `addEvent`, `listEvents`
+- Team: `saveTeamEntry`, `searchTeamEntries`, `setTeamGoal`, `listTeamGoals`
+- Calendar: `addEvent`, `listEvents` (Backend only)
 
 AI picks the right tool automatically—no commands needed.
+
+## Team Features
+
+- **Create & Join Teams** - Start a team or join with invite codes
+- **Team Journaling** - Share journal entries with team members
+- **Team Goals** - Set and track team-wide goals (lead-only)
+- **Real-time Team Chat** - Collaborate with teammates via WebSocket
+- **Team Insights** - Search and analyze team journal entries together
 
 ## Setup
 
