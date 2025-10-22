@@ -50,18 +50,30 @@ const ChatBot: React.FC = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [isWaitingResponse, setIsWaitingResponse] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 3;
-  const authFailedRef = useRef(false); // Track if auth failed to prevent reconnection loops
+  const authFailedRef = useRef(false);
 
+  // Scroll to bottom only when messages exist
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // Scroll to top on initial mount
   useEffect(() => {
-    scrollToBottom();
+    if (messagesContainerRef.current && messages.length === 0) {
+      messagesContainerRef.current.scrollTop = 0;
+    }
+  }, []);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      scrollToBottom();
+    }
   }, [messages]);
 
   // WebSocket connection setup
@@ -92,8 +104,8 @@ const ChatBot: React.FC = () => {
             if (data.status === "authenticated") {
               console.log("[WS] Authenticated successfully");
               setIsConnected(true);
-              reconnectAttemptsRef.current = 0; // Reset reconnect attempts
-              authFailedRef.current = false; // Reset auth failed flag on successful connection
+              reconnectAttemptsRef.current = 0;
+              authFailedRef.current = false;
 
               setMessages((prev) => {
                 const hasConnectionMessage = prev.some(
@@ -150,7 +162,7 @@ const ChatBot: React.FC = () => {
               data.message?.includes("authenticated") ||
               data.message?.includes("token")
             ) {
-              authFailedRef.current = true; // Mark auth as failed to prevent reconnection
+              authFailedRef.current = true;
               navigate("/auth", { replace: true });
               return;
             }
@@ -183,7 +195,6 @@ const ChatBot: React.FC = () => {
         console.log("[WS] Connection closed");
         setIsConnected(false);
 
-        // If auth failed, don't reconnect - redirect to login instead
         if (authFailedRef.current) {
           console.log(
             "[WS] Auth failed, redirecting to login instead of reconnecting"
@@ -192,7 +203,6 @@ const ChatBot: React.FC = () => {
           return;
         }
 
-        // Attempt to reconnect
         if (reconnectAttemptsRef.current < maxReconnectAttempts) {
           reconnectAttemptsRef.current += 1;
           const delay = Math.min(
@@ -508,26 +518,29 @@ const ChatBot: React.FC = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         {/* Header */}
-        <div className="h-16 bg-[#1a1a1a]/60 backdrop-blur-xl border-b border-gray-800/50 flex items-center px-4 flex-shrink-0">
+        <div className="h-14 sm:h-16 bg-[#1a1a1a]/60 backdrop-blur-xl border-b border-gray-800/50 flex items-center px-3 sm:px-4 flex-shrink-0">
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="md:hidden text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-800/50 rounded-lg mr-3"
+            className="md:hidden text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-800/50 rounded-lg mr-2 sm:mr-3"
           >
             {isSidebarOpen ? (
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5 sm:w-6 sm:h-6" />
             ) : (
-              <Menu className="w-6 h-6" />
+              <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
             )}
           </button>
-          <h1 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] md:hidden">
+          <h1 className="text-base sm:text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] md:hidden">
             ReflectIQ
           </h1>
         </div>
 
         {/* Messages Area with custom black scrollbar */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+        <div 
+          ref={messagesContainerRef}
+          className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-4"
+        >
           {!isConnected && (
-            <div className="fixed top-20 right-4 bg-yellow-900/80 text-yellow-200 px-4 py-2 rounded-lg text-sm backdrop-blur-sm border border-yellow-500/30 z-50">
+            <div className="fixed top-16 sm:top-20 right-2 sm:right-4 bg-yellow-900/80 text-yellow-200 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm backdrop-blur-sm border border-yellow-500/30 z-50">
               Connecting to server...
             </div>
           )}
@@ -535,20 +548,20 @@ const ChatBot: React.FC = () => {
           {messages.length === 0 ? (
             <div className="h-full flex items-center justify-center">
               <div className="text-center max-w-2xl px-4">
-                <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                  <img src="/logo-img.png" alt="logo" className="w-12 h-12" />
+                <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 flex items-center justify-center">
+                  <img src="/logo-img.png" alt="logo" className="w-10 h-10 sm:w-12 sm:h-12" />
                 </div>
-                <h1 className="text-4xl md:text-5xl font-extrabold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-2 sm:mb-3 bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]">
                   Welcome to ReflectIQ
                 </h1>
-                <p className="text-lg md:text-xl font-semibold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-[#4BBEBB] to-[#016BFF]">
+                <p className="text-base sm:text-lg md:text-xl font-semibold mb-1 sm:mb-2 bg-clip-text text-transparent bg-gradient-to-r from-[#4BBEBB] to-[#016BFF]">
                   Your AI Journal & Assistant
                 </p>
-                <p className="text-gray-400">How can I help you today?</p>
+                <p className="text-sm sm:text-base text-gray-400">How can I help you today?</p>
               </div>
             </div>
           ) : (
-            <div className="max-w-3xl mx-auto space-y-4">
+            <div className="max-w-3xl mx-auto space-y-3 sm:space-y-4">
               {messages.map((message) => (
                 <div
                   key={message.id}
@@ -557,14 +570,14 @@ const ChatBot: React.FC = () => {
                   }`}
                 >
                   <div
-                    className={`max-w-[85%] ${
-                      message.isUser ? "ml-12" : "mr-12"
+                    className={`max-w-[85%] sm:max-w-[80%] ${
+                      message.isUser ? "ml-8 sm:ml-12" : "mr-8 sm:mr-12"
                     }`}
                   >
                     {!message.isUser && (
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
                         <div
-                          className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
                             message.isError
                               ? "bg-red-500/80"
                               : message.isSystem
@@ -573,7 +586,7 @@ const ChatBot: React.FC = () => {
                           }`}
                         >
                           <svg
-                            className="w-3.5 h-3.5 text-white"
+                            className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white"
                             viewBox="0 0 24 24"
                             fill="currentColor"
                           >
@@ -590,7 +603,7 @@ const ChatBot: React.FC = () => {
                       </div>
                     )}
                     <div
-                      className={`rounded-2xl p-4 ${
+                      className={`rounded-2xl p-3 sm:p-4 ${
                         message.isUser
                           ? "bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-white"
                           : message.isError
@@ -600,10 +613,10 @@ const ChatBot: React.FC = () => {
                           : "bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 text-white"
                       }`}
                     >
-                      <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">
+                      <p className="text-sm sm:text-[15px] leading-relaxed whitespace-pre-wrap break-words">
                         {message.text}
                         {message.isTyping && (
-                          <span className="inline-block w-0.5 h-4 bg-[#4BBEBB] ml-1 animate-pulse"></span>
+                          <span className="inline-block w-0.5 h-3 sm:h-4 bg-[#4BBEBB] ml-1 animate-pulse"></span>
                         )}
                       </p>
                     </div>
@@ -621,11 +634,11 @@ const ChatBot: React.FC = () => {
 
               {isWaitingResponse && (
                 <div className="flex justify-start">
-                  <div className="max-w-[85%] mr-12">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] flex items-center justify-center flex-shrink-0">
+                  <div className="max-w-[85%] sm:max-w-[80%] mr-8 sm:mr-12">
+                    <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
+                      <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] flex items-center justify-center flex-shrink-0">
                         <svg
-                          className="w-3.5 h-3.5 text-white"
+                          className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white"
                           viewBox="0 0 24 24"
                           fill="currentColor"
                         >
@@ -636,23 +649,23 @@ const ChatBot: React.FC = () => {
                         ReflectIQ
                       </span>
                     </div>
-                    <div className="rounded-2xl p-4 bg-gray-800/60 backdrop-blur-sm border border-gray-700/50">
+                    <div className="rounded-2xl p-3 sm:p-4 bg-gray-800/60 backdrop-blur-sm border border-gray-700/50">
                       <div className="flex items-center gap-2">
                         <div className="flex space-x-1">
                           <div
-                            className="w-2 h-2 bg-[#4BBEBB] rounded-full animate-bounce"
+                            className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#4BBEBB] rounded-full animate-bounce"
                             style={{ animationDelay: "0ms" }}
                           ></div>
                           <div
-                            className="w-2 h-2 bg-[#4BBEBB] rounded-full animate-bounce"
+                            className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#4BBEBB] rounded-full animate-bounce"
                             style={{ animationDelay: "150ms" }}
                           ></div>
                           <div
-                            className="w-2 h-2 bg-[#4BBEBB] rounded-full animate-bounce"
+                            className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#4BBEBB] rounded-full animate-bounce"
                             style={{ animationDelay: "300ms" }}
                           ></div>
                         </div>
-                        <span className="text-sm text-gray-400">
+                        <span className="text-xs sm:text-sm text-gray-400">
                           AI is thinking...
                         </span>
                       </div>
@@ -665,8 +678,8 @@ const ChatBot: React.FC = () => {
         </div>
 
         {/* Input Area */}
-        <div className="bg-[#1a1a1a]/60 backdrop-blur-xl border-t border-gray-800/50 p-4 flex-shrink-0">
-          <div className="max-w-4xl mx-auto flex gap-3">
+        <div className="bg-[#1a1a1a]/60 backdrop-blur-xl border-t border-gray-800/50 p-3 sm:p-4 flex-shrink-0">
+          <div className="max-w-4xl mx-auto flex gap-2 sm:gap-3">
             <input
               type="text"
               value={inputMessage}
@@ -676,16 +689,16 @@ const ChatBot: React.FC = () => {
                 isConnected ? "Message ReflectIQ..." : "Connecting..."
               }
               disabled={!isConnected || isWaitingResponse}
-              className="flex-1 bg-gray-800/60 border border-gray-700/50 rounded-2xl px-6 py-4 text-base text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4BBEBB]/50 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 bg-gray-800/60 border border-gray-700/50 rounded-xl sm:rounded-2xl px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4BBEBB]/50 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <button
               onClick={handleSendMessage}
               disabled={
                 !inputMessage.trim() || !isConnected || isWaitingResponse
               }
-              className="bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl px-6 py-4 font-semibold transition-all hover:scale-105 flex items-center justify-center gap-2"
+              className="bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl sm:rounded-2xl px-4 sm:px-6 py-3 sm:py-4 font-semibold transition-all hover:scale-105 flex items-center justify-center gap-2"
             >
-              <Send className="w-5 h-5" />
+              <Send className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
