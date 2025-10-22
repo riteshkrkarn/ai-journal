@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./public/logo.png" alt="ReflectIQ Logo" width="200"/>
+  <img src="./server/public/logo.png" alt="ReflectIQ Logo" width="200"/>
 </p>
 
 # ReflectIQ
