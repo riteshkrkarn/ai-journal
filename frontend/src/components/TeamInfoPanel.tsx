@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, Eye, Copy, Crown, Trash2, Check } from "lucide-react";
 import { getToken } from "../utils/auth";
+import { API_BASE_URL } from "../config/env";
 
 // Types
 interface TeamMember {
@@ -82,7 +83,7 @@ const TeamInfoPanel: React.FC<TeamInfoPanelProps> = ({
       try {
         const token = getToken();
         const response = await fetch(
-          `http://localhost:3000/teams/${selectedTeam.id}/invite-code`,
+          `${API_BASE_URL}/teams/${selectedTeam.id}/invite-code`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

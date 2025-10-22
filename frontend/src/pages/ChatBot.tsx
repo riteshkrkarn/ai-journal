@@ -16,6 +16,7 @@ import TeamSpace from "./TeamSpace";
 import GoalsPage from "./GoalsPage";
 import CalendarPage from "./CalendarPage";
 import { logout } from "../utils/auth";
+import { WS_BASE_URL } from "../config/env";
 
 const Logo: React.FC = () => (
   <div className="flex items-center space-x-2">
@@ -75,7 +76,7 @@ const ChatBot: React.FC = () => {
       }
 
       console.log("[WS] Connecting to WebSocket...");
-      const ws = new WebSocket("ws://localhost:3000/ws");
+      const ws = new WebSocket(`${WS_BASE_URL}/ws`);
 
       ws.onopen = () => {
         console.log("[WS] Connection opened, sending auth");

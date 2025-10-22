@@ -3,6 +3,7 @@ import { Send, Search, MoreVertical, ArrowLeft, Users } from "lucide-react";
 import { getToken } from "../utils/auth";
 import { useNavigate } from "react-router-dom";
 import TeamInfoPanel from "../components/TeamInfoPanel";
+import { API_BASE_URL, WS_BASE_URL } from "../config/env";
 
 // Types
 interface TeamMember {
@@ -62,7 +63,7 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
         setLoading(true);
 
         const token = getToken();
-        const response = await fetch("http://localhost:3000/teams", {
+        const response = await fetch(`${API_BASE_URL}/teams`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -79,7 +80,7 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
           data.teams.map(
             async (team: { id: string; name: string; created_at: string }) => {
               const membersResponse = await fetch(
-                `http://localhost:3000/teams/${team.id}/members`,
+                `${API_BASE_URL}/teams/${team.id}/members`,
                 {
                   headers: {
                     Authorization: `Bearer ${token}`,
@@ -143,7 +144,7 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
     console.log("[Team Chat] Setting up WebSocket for team:", selectedTeam.id);
 
     // Create WebSocket connection (same endpoint as personal chat)
-    const websocket = new WebSocket("ws://localhost:3000/ws");
+    const websocket = new WebSocket(`${WS_BASE_URL}/ws`);
     let streamBuffer = ""; // Local buffer for streaming messages
 
     websocket.onopen = () => {

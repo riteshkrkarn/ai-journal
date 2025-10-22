@@ -4,6 +4,7 @@ import {
   Calendar as CalendarIcon,
   CheckCircle2,
 } from "lucide-react";
+import { API_BASE_URL } from "../config/env";
 
 interface CalendarPageProps {
   onBack?: () => void;
@@ -22,7 +23,7 @@ const CalendarPage: React.FC<CalendarPageProps> = ({ onBack }) => {
       setLoading(true);
       const token = localStorage.getItem("jwt_token");
 
-      const res = await fetch("http://localhost:3000/calendar/status", {
+      const res = await fetch(`${API_BASE_URL}/calendar/status`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -41,7 +42,7 @@ const CalendarPage: React.FC<CalendarPageProps> = ({ onBack }) => {
     try {
       const token = localStorage.getItem("jwt_token");
 
-      const res = await fetch("http://localhost:3000/calendar/connect", {
+      const res = await fetch(`${API_BASE_URL}/calendar/connect`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

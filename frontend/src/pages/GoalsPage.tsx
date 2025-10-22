@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, CheckCircle2, Circle } from "lucide-react";
+import { API_BASE_URL } from "../config/env";
 
 interface Goal {
   id: string;
@@ -31,7 +32,7 @@ const GoalsPage: React.FC<GoalsPageProps> = ({ onBack }) => {
       const token = localStorage.getItem("jwt_token");
 
       // Fetch personal goals
-      const myRes = await fetch("http://localhost:3000/goals", {
+      const myRes = await fetch(`${API_BASE_URL}/goals`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (myRes.ok) {
@@ -43,7 +44,7 @@ const GoalsPage: React.FC<GoalsPageProps> = ({ onBack }) => {
       }
 
       // Get user's teams first
-      const teamsRes = await fetch("http://localhost:3000/teams", {
+      const teamsRes = await fetch(`${API_BASE_URL}/teams`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (teamsRes.ok) {
@@ -56,7 +57,7 @@ const GoalsPage: React.FC<GoalsPageProps> = ({ onBack }) => {
 
           // Fetch team goals for first team
           const teamGoalsRes = await fetch(
-            `http://localhost:3000/goals/team/${firstTeam.id}`,
+            `${API_BASE_URL}/goals/team/${firstTeam.id}`,
             {
               headers: { Authorization: `Bearer ${token}` },
             }

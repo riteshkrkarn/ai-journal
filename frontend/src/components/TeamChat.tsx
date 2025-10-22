@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Send, Loader2 } from "lucide-react";
 import { getToken } from "../utils/auth";
 import { useNavigate } from "react-router-dom";
+import { WS_BASE_URL } from "../config/env";
 
 interface Message {
   id: number;
@@ -54,7 +55,7 @@ const TeamChat: React.FC<TeamChatProps> = ({ teamId, teamName }) => {
       }
 
       console.log(`[TEAM-WS] Connecting to team ${teamId}...`);
-      const ws = new WebSocket("ws://localhost:3000/team-chat");
+      const ws = new WebSocket(`${WS_BASE_URL}/team-chat`);
 
       ws.onopen = () => {
         console.log("[TEAM-WS] Connection opened, sending auth");

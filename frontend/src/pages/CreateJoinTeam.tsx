@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import type { SubmitHandler } from "react-hook-form";
 import { getToken } from "../utils/auth";
 import { ArrowLeft, Users } from "lucide-react";
+import { API_BASE_URL } from "../config/env";
 
 // Types for form data
 type CreateTeamFormData = {
@@ -30,7 +31,7 @@ const CreateJoinTeam: React.FC = () => {
 
     try {
       const token = getToken();
-      const response = await fetch("http://localhost:3000/teams", {
+      const response = await fetch(`${API_BASE_URL}/teams`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -61,7 +62,7 @@ const CreateJoinTeam: React.FC = () => {
 
     try {
       const token = getToken();
-      const response = await fetch(`http://localhost:3000/teams/join`, {
+      const response = await fetch(`${API_BASE_URL}/teams/join`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

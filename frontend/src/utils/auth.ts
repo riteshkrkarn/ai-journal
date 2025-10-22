@@ -1,4 +1,6 @@
-const BASE = "http://localhost:3000";
+import { API_BASE_URL } from "../config/env";
+
+const BASE = API_BASE_URL;
 
 // Token management
 const TOKEN_KEY = "jwt_token";
