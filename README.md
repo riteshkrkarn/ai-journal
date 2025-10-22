@@ -119,6 +119,14 @@ AI: You've mentioned it 4 times:
     ...
 ```
 
+## Contributors
+
+**Ritesh Kumar Karn** - Backend & AI Services  
+[LinkedIn](https://www.linkedin.com/in/riteshkrkarn) • [X](https://x.com/riteshkrkarn) • [GitHub](https://github.com/riteshkrkarn)
+
+**Khushi Mishra** - Frontend  
+[LinkedIn](https://www.linkedin.com/in/khushi-mishra-06815931b/) • [X](https://x.com/Khushim1109) • [GitHub](https://github.com/Khushi256)
+
 ## License
 
 MIT
