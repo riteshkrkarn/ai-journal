@@ -6,6 +6,8 @@
 
 AI-powered journal that autonomously decides what to do based on your conversation. No buttons—just chat naturally.
 
+**🚀 Live Demo:** [https://reflectiq.r2k.dev](https://reflectiq.r2k.dev)
+
 ## What It Does
 
 Talk to the AI like a friend. It automatically:
