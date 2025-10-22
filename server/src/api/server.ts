@@ -26,6 +26,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// Root route
+app.get("/", (req: Request, res: Response) => {
+  res.send({ status: "Backend is live!", time: new Date() });
+});
+
 // Health check
 app.get("/health", (req: Request, res: Response) => {
   res.json({
