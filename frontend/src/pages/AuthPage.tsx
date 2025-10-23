@@ -84,6 +84,16 @@ const AuthPage: React.FC = () => {
     setShowSignupPassword(false);
     setShowConfirmPassword(false);
   };
+  const Logo: React.FC = () => (
+    <div className="flex items-center space-x-2">
+      <div className="w-10 h-10">
+        <img src="/logo-img.png" alt="logo image" />
+      </div>
+      <span className="text-base sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]">
+        ReflectIQ
+      </span>
+    </div>
+  );
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gray-950 p-4 sm:p-6 lg:p-8 font-['Inter',sans-serif]">
@@ -93,16 +103,9 @@ const AuthPage: React.FC = () => {
             className="flex items-center space-x-2 cursor-pointer"
             onClick={() => navigate("/")}
           >
-            <svg
-              className="w-8 h-8 text-[#4BBEBB]"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12.5 7.5C11.67 7.5 11 8.17 11 9V9.5C11 9.78 10.78 10 10.5 10H8C7.45 10 7 10.45 7 11C7 11.55 7.45 12 8 12H9C9.55 12 10 12.45 10 13V15C10 15.55 10.45 16 11 16C11.55 16 12 15.55 12 15V13C12 12.45 12.45 12 13 12H15C15.55 12 16 11.55 16 11C16 10.45 15.55 10 15 10H14C13.45 10 13 9.55 13 9V7.5C13 6.95 12.55 6.5 12 6.5C11.45 6.5 11 6.95 11 7.5V7.5Z" />
-            </svg>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]">
-              ReflectIQ
-            </span>
+          <div className="p-4 border-b border-gray-800/50 flex-shrink-0">
+          <Logo />
+          </div>
           </div>
         </div>
 
