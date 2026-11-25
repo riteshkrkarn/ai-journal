@@ -3,6 +3,8 @@ import type { Request, Response } from "express";
 import { supabaseAdmin } from "../../services/supabase";
 import { authenticate } from "../middleware/auth";
 import { renderTemplate } from "../utils/templateRenderer";
+import { createOtp, verifyOtpCode } from "../../services/otpStore";
+import { sendVerificationCodeEmail } from "../../services/email";
 
 const router = Router();
 
@@ -120,11 +122,11 @@ router.get("/confirm", async (req: Request, res: Response) => {
 });
 
 /**
- * POST /auth/signin - Login
+ * POST /auth/signin - Step 1: Validate credentials & send 6-digit login code
  */
 router.post("/signin", async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -132,20 +134,65 @@ router.post("/signin", async (req: Request, res: Response) => {
       });
     }
 
-    // Sign in with Supabase Auth
     const { data, error } = await supabaseAdmin.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error) {
-      return res.status(401).json({ error: error.message });
+    if (error || !data.user) {
+      return res
+        .status(401)
+        .json({ error: error?.message || "Invalid credentials" });
     }
 
-    if (!data.session) {
-      return res.status(401).json({ error: "Failed to create session" });
+    const otpResult = createOtp(email, "login");
+    if ("error" in otpResult) {
+      return res.status(429).json({ error: otpResult.error });
     }
 
+    await sendVerificationCodeEmail(email, otpResult.code, "login");
+
+    res.json({
+      requiresVerification: true,
+      email: data.user.email,
+      rememberMe: Boolean(rememberMe),
+      message: "Verification code sent to your email",
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || "Internal server error" });
+  }
+});
+
+/**
+ * POST /auth/verify-login - Step 2: Verify 6-digit code & issue session
+ */
+router.post("/verify-login", async (req: Request, res: Response) => {
+  try {
+    const { email, password, code, rememberMe } = req.body;
+
+    if (!email || !password || !code) {
+      return res.status(400).json({
+        error: "Email, password, and verification code are required",
+      });
+    }
+
+    const check = verifyOtpCode(email, "login", String(code));
+    if (!check.valid) {
+      return res.status(400).json({ error: check.error });
+    }
+
+    const { data, error } = await supabaseAdmin.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error || !data.session || !data.user) {
+      return res
+        .status(401)
+        .json({ error: error?.message || "Failed to create session" });
+    }
+
+    const keepLoggedIn = Boolean(rememberMe);
     res.json({
       message: "Signed in successfully",
       user: {
@@ -155,7 +202,135 @@ router.post("/signin", async (req: Request, res: Response) => {
       session: data.session,
       accessToken: data.session.access_token,
       refreshToken: data.session.refresh_token,
+      rememberMe: keepLoggedIn,
+      expiresInDays: keepLoggedIn ? 7 : 1,
     });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || "Internal server error" });
+  }
+});
+
+/**
+ * POST /auth/resend-login-code - Resend 6-digit sign-in code
+ */
+router.post("/resend-login-code", async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+
+    const otpResult = createOtp(email, "login");
+    if ("error" in otpResult) {
+      return res.status(429).json({ error: otpResult.error });
+    }
+
+    await sendVerificationCodeEmail(email, otpResult.code, "login");
+    res.json({ message: "New verification code sent to your email" });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || "Internal server error" });
+  }
+});
+
+/**
+ * POST /auth/password/request-code - Send 6-digit code to modify/reset password
+ */
+router.post("/password/request-code", async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const { data: usersData, error: listError } =
+      await supabaseAdmin.auth.admin.listUsers();
+
+    if (listError) {
+      return res.status(500).json({ error: "Failed to verify account" });
+    }
+
+    const user = usersData.users.find(
+      (u) => u.email?.toLowerCase() === normalizedEmail
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        error: "No account found with that email address",
+      });
+    }
+
+    const otpResult = createOtp(normalizedEmail, "password_reset");
+    if ("error" in otpResult) {
+      return res.status(429).json({ error: otpResult.error });
+    }
+
+    await sendVerificationCodeEmail(
+      normalizedEmail,
+      otpResult.code,
+      "password_reset"
+    );
+
+    res.json({ message: "Password verification code sent to your email" });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || "Internal server error" });
+  }
+});
+
+/**
+ * POST /auth/password/confirm - Verify 6-digit code and update password
+ */
+router.post("/password/confirm", async (req: Request, res: Response) => {
+  try {
+    const { email, code, newPassword } = req.body;
+
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({
+        error: "Email, verification code, and new password are required",
+      });
+    }
+
+    if (String(newPassword).length < 6) {
+      return res.status(400).json({
+        error: "Password must be at least 6 characters",
+      });
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const check = verifyOtpCode(
+      normalizedEmail,
+      "password_reset",
+      String(code)
+    );
+    if (!check.valid) {
+      return res.status(400).json({ error: check.error });
+    }
+
+    const { data: usersData, error: listError } =
+      await supabaseAdmin.auth.admin.listUsers();
+
+    if (listError) {
+      return res.status(500).json({ error: "Failed to look up account" });
+    }
+
+    const user = usersData.users.find(
+      (u) => u.email?.toLowerCase() === normalizedEmail
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const { error: updateError } =
+      await supabaseAdmin.auth.admin.updateUserById(user.id, {
+        password: String(newPassword),
+      });
+
+    if (updateError) {
+      return res.status(400).json({ error: updateError.message });
+    }
+
+    res.json({ message: "Password updated successfully" });
   } catch (error: any) {
     res.status(500).json({ error: error.message || "Internal server error" });
   }
