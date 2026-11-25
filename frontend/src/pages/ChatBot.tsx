@@ -68,18 +68,31 @@ const ChatBot: React.FC = () => {
   const [loadingContext, setLoadingContext] = useState(true);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 3;
   const authFailedRef = useRef(false);
+  const authFailedRef = useRef(false);
 
+  // Scroll to bottom only when messages exist
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // Scroll to top on initial mount
   useEffect(() => {
-    scrollToBottom();
+    if (messagesContainerRef.current && messages.length === 0) {
+      messagesContainerRef.current.scrollTop = 0;
+    }
+  }, []);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      scrollToBottom();
+    }
   }, [messages]);
 
   const fetchLiveContext = useCallback(async () => {
@@ -168,6 +181,8 @@ const ChatBot: React.FC = () => {
               setIsConnected(true);
               reconnectAttemptsRef.current = 0;
               authFailedRef.current = false;
+              reconnectAttemptsRef.current = 0;
+              authFailedRef.current = false;
 
               setMessages((prev) => {
                 const hasConnectionMessage = prev.some(
@@ -221,6 +236,7 @@ const ChatBot: React.FC = () => {
               data.message?.includes("authenticated") ||
               data.message?.includes("token")
             ) {
+              authFailedRef.current = true;
               authFailedRef.current = true;
               navigate("/auth", { replace: true });
               return;
@@ -889,6 +905,5 @@ const ChatBot: React.FC = () => {
       </div>
     </div>
   );
-};
-
+}
 export default ChatBot;
