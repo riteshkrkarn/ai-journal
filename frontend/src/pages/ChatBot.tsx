@@ -74,7 +74,6 @@ const ChatBot: React.FC = () => {
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 3;
   const authFailedRef = useRef(false);
-  const authFailedRef = useRef(false);
 
   // Scroll to bottom only when messages exist
   const scrollToBottom = () => {
