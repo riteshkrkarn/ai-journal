@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Send,
   BookOpen,
-  Search,
+  Target,
   Users,
   Calendar,
   User,
@@ -10,24 +10,18 @@ import {
   Menu,
   X,
   LogOut,
+  PanelRight,
+  Circle,
+  CheckCircle2,
+  ArrowUpRight,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import TeamSpace from "./TeamSpace";
 import GoalsPage from "./GoalsPage";
 import CalendarPage from "./CalendarPage";
 import { logout } from "../utils/auth";
-import { WS_BASE_URL } from "../config/env";
-
-const Logo: React.FC = () => (
-  <div className="flex items-center space-x-2">
-    <div className="w-10 h-10">
-      <img src="/logo-img.png" alt="logo image" />
-    </div>
-    <span className="text-base sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]">
-      ReflectIQ
-    </span>
-  </div>
-);
+import { API_BASE_URL, WS_BASE_URL } from "../config/env";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 interface Message {
   id: number;
@@ -39,22 +33,46 @@ interface Message {
   isSystem?: boolean;
 }
 
+interface ContextGoal {
+  id: string;
+  title: string;
+  deadline?: string;
+  completed: boolean;
+}
+
+interface ContextTeam {
+  id: string;
+  name: string;
+}
+
+const STARTER_PROMPTS = [
+  "Today I shipped the authentication flow and cleaned up the API routes.",
+  "I want to finish 15 system design topics by the end of next month.",
+  "What did I work on last week regarding calendar integration?",
+];
+
 const ChatBot: React.FC = () => {
   const navigate = useNavigate();
   const [inputMessage, setInputMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showContextRail, setShowContextRail] = useState(true);
   const [currentPage, setCurrentPage] = useState<
     "chat" | "team" | "goals" | "calendar"
   >("chat");
   const [isConnected, setIsConnected] = useState(false);
   const [isWaitingResponse, setIsWaitingResponse] = useState(false);
+
+  const [contextGoals, setContextGoals] = useState<ContextGoal[]>([]);
+  const [contextTeams, setContextTeams] = useState<ContextTeam[]>([]);
+  const [loadingContext, setLoadingContext] = useState(true);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 3;
-  const authFailedRef = useRef(false); // Track if auth failed to prevent reconnection loops
+  const authFailedRef = useRef(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -64,46 +82,99 @@ const ChatBot: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-  // WebSocket connection setup
+  const fetchLiveContext = useCallback(async () => {
+    const token = localStorage.getItem("jwt_token");
+    if (!token) return;
+
+    try {
+      setLoadingContext(true);
+      const [goalsRes, teamsRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/goals`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_BASE_URL}/teams`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      if (goalsRes.ok) {
+        const goalsData = await goalsRes.json();
+        setContextGoals(goalsData.goals || []);
+      }
+
+      if (teamsRes.ok) {
+        const teamsData = await teamsRes.json();
+        setContextTeams(teamsData.teams || []);
+      }
+    } catch (error) {
+      console.error("[CONTEXT] Failed to fetch live context:", error);
+    } finally {
+      setLoadingContext(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLiveContext();
+  }, [fetchLiveContext]);
+
+  const simulateTyping = (text: string, messageId: number) => {
+    let currentText = "";
+    const words = text.split(" ");
+    let wordIndex = 0;
+
+    const typingInterval = setInterval(() => {
+      if (wordIndex < words.length) {
+        currentText += (wordIndex > 0 ? " " : "") + words[wordIndex];
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === messageId
+              ? { ...msg, text: currentText, isTyping: true }
+              : msg
+          )
+        );
+        wordIndex++;
+      } else {
+        clearInterval(typingInterval);
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === messageId ? { ...msg, isTyping: false } : msg
+          )
+        );
+      }
+    }, 35);
+  };
+
   useEffect(() => {
     const connectWebSocket = () => {
       const token = localStorage.getItem("jwt_token");
 
       if (!token) {
-        console.error("[WS] No token found, redirecting to auth");
         navigate("/auth", { replace: true });
         return;
       }
 
-      console.log("[WS] Connecting to WebSocket...");
       const ws = new WebSocket(`${WS_BASE_URL}/ws`);
 
       ws.onopen = () => {
-        console.log("[WS] Connection opened, sending auth");
         ws.send(JSON.stringify({ type: "auth", token }));
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log("[WS] Received:", data.type);
 
           if (data.type === "auth") {
             if (data.status === "authenticated") {
-              console.log("[WS] Authenticated successfully");
               setIsConnected(true);
-              reconnectAttemptsRef.current = 0; // Reset reconnect attempts
-              authFailedRef.current = false; // Reset auth failed flag on successful connection
+              reconnectAttemptsRef.current = 0;
+              authFailedRef.current = false;
 
               setMessages((prev) => {
                 const hasConnectionMessage = prev.some(
                   (msg) =>
                     msg.isSystem && msg.text === "Connected to AI Assistant"
                 );
-
-                if (hasConnectionMessage) {
-                  return prev;
-                }
+                if (hasConnectionMessage) return prev;
 
                 return [
                   ...prev,
@@ -142,15 +213,15 @@ const ChatBot: React.FC = () => {
               { ...newMessage, text: "", isTyping: true },
             ]);
             simulateTyping(data.content, newMessage.id);
+            fetchLiveContext();
           } else if (data.type === "error") {
             setIsWaitingResponse(false);
-            console.error("[WS] Error:", data.message);
 
             if (
               data.message?.includes("authenticated") ||
               data.message?.includes("token")
             ) {
-              authFailedRef.current = true; // Mark auth as failed to prevent reconnection
+              authFailedRef.current = true;
               navigate("/auth", { replace: true });
               return;
             }
@@ -174,40 +245,30 @@ const ChatBot: React.FC = () => {
         }
       };
 
-      ws.onerror = (error) => {
-        console.error("[WS] WebSocket error:", error);
+      ws.onerror = () => {
         setIsConnected(false);
       };
 
       ws.onclose = () => {
-        console.log("[WS] Connection closed");
         setIsConnected(false);
 
-        // If auth failed, don't reconnect - redirect to login instead
         if (authFailedRef.current) {
-          console.log(
-            "[WS] Auth failed, redirecting to login instead of reconnecting"
-          );
           navigate("/auth", { replace: true });
           return;
         }
 
-        // Attempt to reconnect
         if (reconnectAttemptsRef.current < maxReconnectAttempts) {
           reconnectAttemptsRef.current += 1;
           const delay = Math.min(
             1000 * Math.pow(2, reconnectAttemptsRef.current),
             10000
           );
-          console.log(
-            `[WS] Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`
-          );
 
           setMessages((prev) => [
             ...prev,
             {
               id: Date.now(),
-              text: `Connection lost. Reconnecting... (${reconnectAttemptsRef.current}/${maxReconnectAttempts})`,
+              text: `Connection lost. Reconnecting (${reconnectAttemptsRef.current}/${maxReconnectAttempts})...`,
               isUser: false,
               isSystem: true,
               timestamp: new Date().toLocaleTimeString([], {
@@ -217,7 +278,10 @@ const ChatBot: React.FC = () => {
             },
           ]);
 
-          reconnectTimeoutRef.current = setTimeout(connectWebSocket, delay);
+          reconnectTimeoutRef.current = window.setTimeout(
+            connectWebSocket,
+            delay
+          );
         } else {
           setMessages((prev) => [
             ...prev,
@@ -248,7 +312,7 @@ const ChatBot: React.FC = () => {
         wsRef.current.close();
       }
     };
-  }, [navigate]);
+  }, [navigate, fetchLiveContext]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -257,6 +321,11 @@ const ChatBot: React.FC = () => {
       } else {
         setIsSidebarOpen(false);
       }
+      if (window.innerWidth < 1280) {
+        setShowContextRail(false);
+      } else {
+        setShowContextRail(true);
+      }
     };
 
     handleResize();
@@ -264,37 +333,10 @@ const ChatBot: React.FC = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const simulateTyping = (text: string, messageId: number) => {
-    let currentText = "";
-    const words = text.split(" ");
-    let wordIndex = 0;
+  const sendText = (rawText: string) => {
+    if (rawText.trim() === "" || !isConnected || isWaitingResponse) return;
 
-    const typingInterval = setInterval(() => {
-      if (wordIndex < words.length) {
-        currentText += (wordIndex > 0 ? " " : "") + words[wordIndex];
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === messageId
-              ? { ...msg, text: currentText, isTyping: true }
-              : msg
-          )
-        );
-        wordIndex++;
-      } else {
-        clearInterval(typingInterval);
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === messageId ? { ...msg, isTyping: false } : msg
-          )
-        );
-      }
-    }, 50);
-  };
-
-  const handleSendMessage = () => {
-    if (inputMessage.trim() === "" || !isConnected || isWaitingResponse) return;
-
-    const userMessage = inputMessage.trim();
+    const userMessage = rawText.trim();
 
     const newMessage: Message = {
       id: Date.now(),
@@ -317,9 +359,7 @@ const ChatBot: React.FC = () => {
           message: userMessage,
         })
       );
-      console.log("[WS] Sent message:", userMessage);
     } else {
-      console.error("[WS] WebSocket not connected");
       setIsWaitingResponse(false);
       setMessages((prev) => [
         ...prev,
@@ -337,7 +377,11 @@ const ChatBot: React.FC = () => {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleSendMessage = () => {
+    sendText(inputMessage);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -353,6 +397,7 @@ const ChatBot: React.FC = () => {
 
   const handleBackToChat = () => {
     setCurrentPage("chat");
+    fetchLiveContext();
   };
 
   const handleLogout = async () => {
@@ -376,318 +421,470 @@ const ChatBot: React.FC = () => {
     return <CalendarPage onBack={handleBackToChat} />;
   }
 
-  return (
-    <div className="h-screen w-full bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex font-['Inter',sans-serif] overflow-hidden m-0 p-0">
-      {/* Custom scrollbar styles */}
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #000000;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #1a1a1a;
-          border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #2a2a2a;
-        }
-        .custom-scrollbar {
-          scrollbar-width: thin;
-          scrollbar-color: #1a1a1a #000000;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
+  const activeGoals = contextGoals.filter((g) => !g.completed).slice(0, 4);
+  const completedCount = contextGoals.filter((g) => g.completed).length;
 
-      {/* Left Sidebar */}
-      <div
+  return (
+    <div className="h-screen w-full bg-background text-foreground flex overflow-hidden">
+      {/* Left Navigation Rail */}
+      <aside
         className={`${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0 fixed md:static inset-y-0 left-0 z-50 w-64 bg-black/95 md:bg-black/80 backdrop-blur-xl border-r border-gray-800/50 flex flex-col transition-transform duration-300 overflow-hidden`}
+        } md:translate-x-0 fixed md:static inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-sidebar-border flex flex-col transition-transform duration-200`}
       >
-        {/* Logo */}
-        <div className="p-4 border-b border-gray-800/50 flex-shrink-0">
-          <Logo />
-          <p className="text-xs sm:text-sm mt-1 bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]">
-            Your AI Journal & Assistant
-          </p>
+        {/* Brand */}
+        <div className="h-14 px-4 border-b border-sidebar-border flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2.5">
+            <img
+              src="/logo-img.png"
+              alt="ReflectIQ mark"
+              className="h-6 w-6 rounded object-contain"
+            />
+            <span className="font-display text-base font-bold tracking-tight text-sidebar-foreground">
+              ReflectIQ
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsSidebarOpen(false)}
+            className="md:hidden rounded-md p-1 text-muted-foreground hover:text-foreground"
+            aria-label="Close navigation"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
-        {/* Navigation */}
-        <div className="flex-1 p-3 space-y-2 overflow-y-auto scrollbar-hide">
+        {/* Primary Nav */}
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           <button
+            type="button"
             onClick={() => navigateToPage("chat")}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-[#016BFF]/10 to-[#4BBEBB]/10 border border-[#4BBEBB]/30 hover:border-[#4BBEBB]/50 transition-all"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-card border border-border text-sm font-medium text-foreground shadow-2xs"
           >
-            <BookOpen className="w-5 h-5 text-[#4BBEBB] flex-shrink-0" />
-            <span className="text-sm font-medium bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] truncate">
-              Journal / Chat
-            </span>
+            <BookOpen className="h-4 w-4 text-primary shrink-0" />
+            <span className="truncate">Journal / Chat</span>
           </button>
 
           <button
+            type="button"
             onClick={() => navigateToPage("goals")}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800/50 transition-all group"
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
           >
-            <Search className="w-5 h-5 text-gray-400 group-hover:text-[#4BBEBB] flex-shrink-0" />
-            <span className="text-sm font-medium text-gray-400 group-hover:bg-clip-text group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-[#016BFF] group-hover:to-[#4BBEBB] truncate">
-              Goal
+            <span className="flex items-center gap-3 truncate">
+              <Target className="h-4 w-4 shrink-0" />
+              <span>Goals</span>
             </span>
+            {contextGoals.length > 0 && (
+              <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                {activeGoals.length}
+              </span>
+            )}
           </button>
 
           <button
+            type="button"
             onClick={() => navigateToPage("team")}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800/50 transition-all group"
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
           >
-            <Users className="w-5 h-5 text-gray-400 group-hover:text-[#4BBEBB] flex-shrink-0" />
-            <span className="text-sm font-medium text-gray-400 group-hover:bg-clip-text group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-[#016BFF] group-hover:to-[#4BBEBB] truncate">
-              Team
+            <span className="flex items-center gap-3 truncate">
+              <Users className="h-4 w-4 shrink-0" />
+              <span>Team Space</span>
             </span>
+            {contextTeams.length > 0 && (
+              <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                {contextTeams.length}
+              </span>
+            )}
           </button>
 
           <button
+            type="button"
             onClick={() => navigateToPage("calendar")}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800/50 transition-all group"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
           >
-            <Calendar className="w-5 h-5 text-gray-400 group-hover:text-[#4BBEBB] flex-shrink-0" />
-            <span className="text-sm font-medium text-gray-400 group-hover:bg-clip-text group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-[#016BFF] group-hover:to-[#4BBEBB] truncate">
-              Calendar
-            </span>
+            <Calendar className="h-4 w-4 shrink-0" />
+            <span className="truncate">Calendar</span>
           </button>
-        </div>
+        </nav>
 
-        {/* Profile and Settings */}
-        <div className="p-3 border-t border-gray-800/50 space-y-2 flex-shrink-0">
+        {/* Bottom Account Controls */}
+        <div className="p-3 border-t border-sidebar-border space-y-1 shrink-0">
           <button
+            type="button"
             onClick={() => navigate("/profile")}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800/50 transition-all group"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
           >
-            <User className="w-5 h-5 text-gray-400 group-hover:text-[#4BBEBB] flex-shrink-0" />
-            <span className="text-sm font-medium text-gray-400 group-hover:bg-clip-text group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-[#016BFF] group-hover:to-[#4BBEBB] truncate">
-              Profile
-            </span>
+            <User className="h-4 w-4 shrink-0" />
+            <span className="truncate">Profile</span>
           </button>
 
           <button
+            type="button"
             onClick={() => navigate("/settings")}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-800/50 transition-all group"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
           >
-            <Settings className="w-5 h-5 text-gray-400 group-hover:text-[#4BBEBB] flex-shrink-0" />
-            <span className="text-sm font-medium text-gray-400 group-hover:bg-clip-text group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-[#016BFF] group-hover:to-[#4BBEBB] truncate">
-              Settings
-            </span>
+            <Settings className="h-4 w-4 shrink-0" />
+            <span className="truncate">Settings</span>
           </button>
 
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-900/30 transition-all group border border-transparent hover:border-red-500/30"
-          >
-            <LogOut className="w-5 h-5 text-gray-400 group-hover:text-red-400 flex-shrink-0" />
-            <span className="text-sm font-medium text-gray-400 group-hover:text-red-400 truncate">
-              Logout
-            </span>
-          </button>
+          <div className="pt-1 flex items-center gap-2">
+            <ThemeToggle className="flex-1 justify-center" />
+            <button
+              type="button"
+              onClick={handleLogout}
+              title="Sign Out"
+              aria-label="Sign Out"
+              className="inline-flex items-center justify-center rounded-lg border border-border bg-card p-2 text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
         </div>
-      </div>
+      </aside>
 
-      {/* Overlay for mobile */}
+      {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          className="fixed inset-0 bg-foreground/20 backdrop-blur-xs z-40 md:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        {/* Header */}
-        <div className="h-16 bg-[#1a1a1a]/60 backdrop-blur-xl border-b border-gray-800/50 flex items-center px-4 flex-shrink-0">
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="md:hidden text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-800/50 rounded-lg mr-3"
-          >
-            {isSidebarOpen ? (
-              <X className="w-6 h-6" />
-            ) : (
-              <Menu className="w-6 h-6" />
-            )}
-          </button>
-          <h1 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] md:hidden">
-            ReflectIQ
-          </h1>
-        </div>
+      {/* Center Conversation Stage */}
+      <div className="flex-1 flex flex-col h-screen min-w-0">
+        {/* Top Header */}
+        <header className="h-14 border-b border-border bg-card/80 backdrop-blur-sm px-4 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              type="button"
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="md:hidden rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              aria-label="Toggle navigation"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <h1 className="font-display text-base font-semibold text-foreground truncate">
+              Personal Journal
+            </h1>
+          </div>
 
-        {/* Messages Area with custom black scrollbar */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
-          {!isConnected && (
-            <div className="fixed top-20 right-4 bg-yellow-900/80 text-yellow-200 px-4 py-2 rounded-lg text-sm backdrop-blur-sm border border-yellow-500/30 z-50">
-              Connecting to server...
-            </div>
-          )}
+          <div className="flex items-center gap-2.5">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[11px] font-medium ${
+                isConnected
+                  ? "border-border bg-background text-foreground"
+                  : "border-warning/30 bg-warning/10 text-warning"
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  isConnected ? "bg-success" : "bg-warning animate-pulse"
+                }`}
+              />
+              {isConnected ? "Connected" : "Connecting"}
+            </span>
 
-          {messages.length === 0 ? (
-            <div className="h-full flex items-center justify-center">
-              <div className="text-center max-w-2xl px-4">
-                <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                  <img src="/logo-img.png" alt="logo" className="w-12 h-12" />
-                </div>
-                <h1 className="text-4xl md:text-5xl font-extrabold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]">
-                  Welcome to ReflectIQ
-                </h1>
-                <p className="text-lg md:text-xl font-semibold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-[#4BBEBB] to-[#016BFF]">
-                  Your AI Journal & Assistant
-                </p>
-                <p className="text-gray-400">How can I help you today?</p>
-              </div>
-            </div>
-          ) : (
-            <div className="max-w-3xl mx-auto space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${
-                    message.isUser ? "justify-end" : "justify-start"
-                  }`}
-                >
-                  <div
-                    className={`max-w-[85%] ${
-                      message.isUser ? "ml-12" : "mr-12"
-                    }`}
-                  >
-                    {!message.isUser && (
-                      <div className="flex items-center gap-2 mb-2">
-                        <div
-                          className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            message.isError
-                              ? "bg-red-500/80"
-                              : message.isSystem
-                              ? "bg-gray-600"
-                              : "bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]"
-                          }`}
-                        >
-                          <svg
-                            className="w-3.5 h-3.5 text-white"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                          >
-                            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" />
-                          </svg>
-                        </div>
-                        <span className="text-xs font-medium text-gray-500">
-                          {message.isError
-                            ? "Error"
-                            : message.isSystem
-                            ? "System"
-                            : "ReflectIQ"}
-                        </span>
-                      </div>
-                    )}
-                    <div
-                      className={`rounded-2xl p-4 ${
-                        message.isUser
-                          ? "bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-white"
-                          : message.isError
-                          ? "bg-red-900/40 backdrop-blur-sm border border-red-500/30 text-red-200"
-                          : message.isSystem
-                          ? "bg-gray-700/40 backdrop-blur-sm border border-gray-600/30 text-gray-300 italic"
-                          : "bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 text-white"
-                      }`}
-                    >
-                      <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">
-                        {message.text}
-                        {message.isTyping && (
-                          <span className="inline-block w-0.5 h-4 bg-[#4BBEBB] ml-1 animate-pulse"></span>
-                        )}
-                      </p>
-                    </div>
-                    <p
-                      className={`text-xs text-gray-600 mt-1 ${
-                        message.isUser ? "text-right" : "text-left"
-                      }`}
-                    >
-                      {message.timestamp}
+            <button
+              type="button"
+              onClick={() => setShowContextRail(!showContextRail)}
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                showContextRail
+                  ? "border-primary/40 bg-accent text-accent-foreground"
+                  : "border-border bg-card text-muted-foreground hover:text-foreground"
+              }`}
+              aria-label="Toggle live context panel"
+            >
+              <PanelRight className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Context</span>
+            </button>
+          </div>
+        </header>
+
+        {/* Stream + Right Context Rail */}
+        <div className="flex-1 flex min-h-0 overflow-hidden">
+          {/* Messages Column */}
+          <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
+              {messages.length === 0 ? (
+                <div className="mx-auto flex h-full max-w-xl flex-col justify-center">
+                  <h2 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                    What is on your mind today?
+                  </h2>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                    Write naturally. ReflectIQ saves journal entries, creates
+                    goals from deadlines, and searches your history by meaning.
+                  </p>
+
+                  <div className="mt-6 space-y-2">
+                    <p className="font-mono text-[11px] font-medium text-muted-foreground">
+                      Try starting with
                     </p>
+                    {STARTER_PROMPTS.map((prompt) => (
+                      <button
+                        key={prompt}
+                        type="button"
+                        onClick={() => setInputMessage(prompt)}
+                        className="w-full text-left rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground hover:border-primary/50 hover:bg-secondary/40 transition-colors"
+                      >
+                        "{prompt}"
+                      </button>
+                    ))}
                   </div>
                 </div>
-              ))}
-              <div ref={messagesEndRef} />
-
-              {isWaitingResponse && (
-                <div className="flex justify-start">
-                  <div className="max-w-[85%] mr-12">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] flex items-center justify-center flex-shrink-0">
-                        <svg
-                          className="w-3.5 h-3.5 text-white"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
+              ) : (
+                <div className="mx-auto max-w-3xl space-y-5">
+                  {messages.map((message) => {
+                    if (message.isSystem) {
+                      return (
+                        <div
+                          key={message.id}
+                          className="flex items-center justify-center py-1"
                         >
-                          <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" />
-                        </svg>
-                      </div>
-                      <span className="text-xs font-medium text-gray-500">
-                        ReflectIQ
-                      </span>
-                    </div>
-                    <div className="rounded-2xl p-4 bg-gray-800/60 backdrop-blur-sm border border-gray-700/50">
-                      <div className="flex items-center gap-2">
-                        <div className="flex space-x-1">
-                          <div
-                            className="w-2 h-2 bg-[#4BBEBB] rounded-full animate-bounce"
-                            style={{ animationDelay: "0ms" }}
-                          ></div>
-                          <div
-                            className="w-2 h-2 bg-[#4BBEBB] rounded-full animate-bounce"
-                            style={{ animationDelay: "150ms" }}
-                          ></div>
-                          <div
-                            className="w-2 h-2 bg-[#4BBEBB] rounded-full animate-bounce"
-                            style={{ animationDelay: "300ms" }}
-                          ></div>
+                          <span className="rounded-full border border-border bg-secondary/60 px-3 py-1 font-mono text-[11px] text-muted-foreground">
+                            {message.text} · {message.timestamp}
+                          </span>
                         </div>
-                        <span className="text-sm text-gray-400">
-                          AI is thinking...
-                        </span>
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={message.id}
+                        className={`flex ${
+                          message.isUser ? "justify-end" : "justify-start"
+                        }`}
+                      >
+                        <div
+                          className={`max-w-[85%] sm:max-w-[78%] ${
+                            message.isUser ? "items-end" : "items-start"
+                          } flex flex-col`}
+                        >
+                          {!message.isUser && (
+                            <div className="mb-1.5 flex items-center gap-2">
+                              <span className="font-mono text-[11px] font-medium text-primary">
+                                {message.isError ? "Error" : "ReflectIQ"}
+                              </span>
+                              <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
+                                {message.timestamp}
+                              </span>
+                            </div>
+                          )}
+
+                          <div
+                            className={`rounded-xl px-4 py-3 text-[15px] leading-relaxed whitespace-pre-wrap break-words ${
+                              message.isUser
+                                ? "bg-primary text-primary-foreground rounded-br-sm"
+                                : message.isError
+                                ? "border border-destructive/30 bg-destructive/10 text-destructive rounded-bl-sm"
+                                : "border border-border bg-card text-foreground rounded-bl-sm shadow-2xs"
+                            }`}
+                          >
+                            {message.text}
+                            {message.isTyping && (
+                              <span className="ml-1 inline-block h-4 w-0.5 bg-primary align-middle animate-pulse" />
+                            )}
+                          </div>
+
+                          {message.isUser && (
+                            <span className="mt-1 font-mono text-[11px] text-muted-foreground tabular-nums">
+                              {message.timestamp}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {isWaitingResponse && (
+                    <div className="flex justify-start">
+                      <div className="rounded-xl rounded-bl-sm border border-border bg-card px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="flex gap-1">
+                            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce" />
+                            <span
+                              className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce"
+                              style={{ animationDelay: "150ms" }}
+                            />
+                            <span
+                              className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce"
+                              style={{ animationDelay: "300ms" }}
+                            />
+                          </span>
+                          <span className="font-mono text-xs text-muted-foreground">
+                            Thinking
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
+                  <div ref={messagesEndRef} />
                 </div>
               )}
             </div>
-          )}
-        </div>
 
-        {/* Input Area */}
-        <div className="bg-[#1a1a1a]/60 backdrop-blur-xl border-t border-gray-800/50 p-4 flex-shrink-0">
-          <div className="max-w-4xl mx-auto flex gap-3">
-            <input
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={
-                isConnected ? "Message ReflectIQ..." : "Connecting..."
-              }
-              disabled={!isConnected || isWaitingResponse}
-              className="flex-1 bg-gray-800/60 border border-gray-700/50 rounded-2xl px-6 py-4 text-base text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4BBEBB]/50 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-            <button
-              onClick={handleSendMessage}
-              disabled={
-                !inputMessage.trim() || !isConnected || isWaitingResponse
-              }
-              className="bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl px-6 py-4 font-semibold transition-all hover:scale-105 flex items-center justify-center gap-2"
-            >
-              <Send className="w-5 h-5" />
-            </button>
+            {/* Composer */}
+            <div className="border-t border-border bg-card/80 px-4 py-3.5 sm:px-6 shrink-0">
+              <div className="mx-auto flex max-w-3xl items-center gap-2.5">
+                <input
+                  type="text"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={
+                    isConnected
+                      ? "Write a reflection, goal, or question..."
+                      : "Connecting to assistant..."
+                  }
+                  disabled={!isConnected || isWaitingResponse}
+                  className="flex-1 rounded-lg border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <button
+                  type="button"
+                  onClick={handleSendMessage}
+                  disabled={
+                    !inputMessage.trim() || !isConnected || isWaitingResponse
+                  }
+                  aria-label="Send message"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Send className="h-4 w-4" />
+                  <span className="hidden sm:inline">Send</span>
+                </button>
+              </div>
+            </div>
           </div>
+
+          {/* Right Live Context Rail */}
+          {showContextRail && (
+            <aside className="hidden lg:flex w-80 border-l border-border bg-sidebar/50 flex-col overflow-y-auto p-4 space-y-6 shrink-0">
+              {/* Active Goals */}
+              <section>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="font-display text-sm font-semibold text-foreground">
+                    Active Goals
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => navigateToPage("goals")}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                  >
+                    View all
+                    <ArrowUpRight className="h-3 w-3" />
+                  </button>
+                </div>
+
+                {loadingContext ? (
+                  <p className="text-xs text-muted-foreground">Loading goals...</p>
+                ) : activeGoals.length === 0 ? (
+                  <div className="rounded-lg border border-border bg-card p-3.5 text-xs text-muted-foreground">
+                    No active goals yet. Mention a deadline in chat to create
+                    one automatically.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {activeGoals.map((goal) => (
+                      <div
+                        key={goal.id}
+                        className="rounded-lg border border-border bg-card p-3"
+                      >
+                        <div className="flex items-start gap-2">
+                          <Circle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-foreground leading-snug">
+                              {goal.title}
+                            </p>
+                            {goal.deadline && (
+                              <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+                                Due{" "}
+                                {new Date(goal.deadline).toLocaleDateString(
+                                  "en-US",
+                                  { month: "short", day: "numeric" }
+                                )}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {completedCount > 0 && (
+                      <div className="flex items-center gap-1.5 pt-1 text-xs text-muted-foreground">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                        <span className="tabular-nums">
+                          {completedCount} completed
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </section>
+
+              {/* Teams */}
+              <section className="border-t border-border pt-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="font-display text-sm font-semibold text-foreground">
+                    Teams
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => navigateToPage("team")}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                  >
+                    Open
+                    <ArrowUpRight className="h-3 w-3" />
+                  </button>
+                </div>
+
+                {loadingContext ? (
+                  <p className="text-xs text-muted-foreground">Loading teams...</p>
+                ) : contextTeams.length === 0 ? (
+                  <div className="rounded-lg border border-border bg-card p-3.5 text-xs text-muted-foreground">
+                    No teams yet. Open Team Space to create or join one.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {contextTeams.slice(0, 3).map((team) => (
+                      <button
+                        key={team.id}
+                        type="button"
+                        onClick={() => navigateToPage("team")}
+                        className="w-full flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2.5 text-left text-xs font-medium text-foreground hover:border-primary/50 transition-colors"
+                      >
+                        <span className="truncate">{team.name}</span>
+                        <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* Natural Commands Reference */}
+              <section className="border-t border-border pt-5">
+                <h2 className="font-display text-sm font-semibold text-foreground mb-2.5">
+                  What you can say
+                </h2>
+                <ul className="space-y-2 text-xs text-muted-foreground">
+                  <li className="rounded-lg border border-border bg-card p-2.5">
+                    <span className="font-medium text-foreground block">
+                      Save a reflection
+                    </span>
+                    "Today I wrapped up the database migration."
+                  </li>
+                  <li className="rounded-lg border border-border bg-card p-2.5">
+                    <span className="font-medium text-foreground block">
+                      Track a deadline
+                    </span>
+                    "I need to finish the API docs by Friday."
+                  </li>
+                  <li className="rounded-lg border border-border bg-card p-2.5">
+                    <span className="font-medium text-foreground block">
+                      Search by meaning
+                    </span>
+                    "When did I last work on OAuth?"
+                  </li>
+                </ul>
+              </section>
+            </aside>
+          )}
         </div>
       </div>
     </div>

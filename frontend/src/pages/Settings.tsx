@@ -1,200 +1,123 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  ArrowLeft, 
-  Lock, 
+import {
+  ArrowLeft,
   Shield,
-  Database,
-  Download,
-  Trash2,
+  Lock,
   Mail,
   Key,
-  Chrome
+  Database,
+  Download,
 } from "lucide-react";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
-  const [userEmail] = useState("user@example.com"); // Get from auth context
+  const [userEmail] = useState("user@example.com");
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 font-['Inter',sans-serif] overflow-hidden">
-      {/* Animated background gradients */}
-      <div className="fixed inset-0 opacity-20">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#016BFF] rounded-full filter blur-[120px] animate-pulse"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#4BBEBB] rounded-full filter blur-[120px] animate-pulse" style={{ animationDelay: '1s' }}></div>
-      </div>
-
-      {/* Custom scrollbar styles */}
-      <style>{`
-        .scrollbar-custom::-webkit-scrollbar {
-          width: 8px;
-        }
-        .scrollbar-custom::-webkit-scrollbar-track {
-          background: #000000;
-        }
-        .scrollbar-custom::-webkit-scrollbar-thumb {
-          background: #1a1a1a;
-          border-radius: 4px;
-        }
-        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
-          background: #2a2a2a;
-        }
-      `}</style>
-
-      {/* Main Content */}
-      <div className="relative z-10 h-screen flex flex-col">
-        {/* Header */}
-        <div className="bg-[#1a1a1a]/60 backdrop-blur-xl border-b border-gray-800/50 px-6 py-4 flex-shrink-0">
-          <div className="max-w-4xl mx-auto flex items-center justify-between">
+    <div className="min-h-screen w-full bg-background text-foreground flex flex-col">
+      <header className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3.5 sm:px-6">
+          <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors group"
+              className="rounded-lg border border-border bg-background p-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              aria-label="Back"
             >
-              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-              <span className="text-sm font-medium">Back</span>
+              <ArrowLeft className="h-4 w-4" />
             </button>
-            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]">
+            <h1 className="font-display text-lg font-bold tracking-tight text-foreground">
               Settings
             </h1>
-            <div className="w-20"></div>
           </div>
+
+          <ThemeToggle compact />
         </div>
+      </header>
 
-        {/* Settings Content */}
-        <div className="flex-1 overflow-y-auto scrollbar-custom p-6">
-          <div className="max-w-4xl mx-auto space-y-6">
-            {/* Account Section */}
-            <div className="bg-[#1a1a1a]/60 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-6">
-              <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <Shield className="w-5 h-5 text-[#4BBEBB]" />
-                Account
-              </h2>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 p-4 bg-gray-800/30 rounded-xl">
-                  <Mail className="w-5 h-5 text-[#4BBEBB]" />
-                  <div>
-                    <p className="text-xs text-gray-400">Email</p>
-                    <p className="text-white font-medium">{userEmail}</p>
-                  </div>
-                </div>
-              </div>
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6 space-y-6">
+        {/* Account */}
+        <section className="rounded-xl border border-border bg-card p-6">
+          <h2 className="font-display text-base font-semibold text-foreground flex items-center gap-2 mb-4">
+            <Shield className="h-4 w-4 text-primary" />
+            Account
+          </h2>
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-background p-3.5">
+            <Mail className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <p className="text-xs text-muted-foreground">Email</p>
+              <p className="text-sm font-medium text-foreground">{userEmail}</p>
             </div>
+          </div>
+        </section>
 
-            {/* Authentication Section */}
-            <div className="bg-[#1a1a1a]/60 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-6">
-              <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <Lock className="w-5 h-5 text-[#4BBEBB]" />
-                Authentication
+        {/* Appearance */}
+        <section className="rounded-xl border border-border bg-card p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-display text-base font-semibold text-foreground">
+                Appearance
               </h2>
-              <div className="space-y-3">
-                <button className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-gray-800/50 transition-all group">
-                  <div className="flex items-center gap-3">
-                    <Key className="w-5 h-5 text-gray-400 group-hover:text-[#4BBEBB]" />
-                    <div className="text-left">
-                      <h3 className="text-white font-medium">Change Password</h3>
-                      <p className="text-sm text-gray-400">Update your account password</p>
-                    </div>
-                  </div>
-                  <ArrowLeft className="w-5 h-5 text-gray-400 rotate-180" />
-                </button>
-
-                <button className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-gray-800/50 transition-all group">
-                  <div className="flex items-center gap-3">
-                    <Chrome className="w-5 h-5 text-gray-400 group-hover:text-[#4BBEBB]" />
-                    <div className="text-left">
-                      <h3 className="text-white font-medium">Google OAuth</h3>
-                      <p className="text-sm text-gray-400">Manage Google account connection</p>
-                    </div>
-                  </div>
-                  <ArrowLeft className="w-5 h-5 text-gray-400 rotate-180" />
-                </button>
-
-                <div className="p-4 bg-gray-800/30 rounded-xl">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Shield className="w-5 h-5 text-[#4BBEBB]" />
-                    <h3 className="text-white font-medium">Security</h3>
-                  </div>
-                  <p className="text-sm text-gray-400 leading-relaxed">
-                    Your account is secured with JWT-based authentication and Supabase Auth. 
-                    All sessions are encrypted and automatically expire for your protection.
-                  </p>
-                </div>
-              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Switch between warm daylight paper and low-glare evening mode.
+              </p>
             </div>
+            <ThemeToggle />
+          </div>
+        </section>
 
-            {/* Data Management */}
-            <div className="bg-[#1a1a1a]/60 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-6">
-              <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <Database className="w-5 h-5 text-[#4BBEBB]" />
-                Data Management
-              </h2>
-              <div className="space-y-3">
-                <button className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-gray-800/50 transition-all group">
-                  <div className="flex items-center gap-3">
-                    <Download className="w-5 h-5 text-gray-400 group-hover:text-[#4BBEBB]" />
-                    <div className="text-left">
-                      <h3 className="text-white font-medium">Export Data</h3>
-                      <p className="text-sm text-gray-400">Download your journal entries and goals</p>
-                    </div>
-                  </div>
-                  <ArrowLeft className="w-5 h-5 text-gray-400 rotate-180" />
-                </button>
-
-                <div className="p-4 bg-gray-800/30 rounded-xl">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Database className="w-5 h-5 text-[#4BBEBB]" />
-                    <h3 className="text-white font-medium">Database</h3>
-                  </div>
-                  <p className="text-sm text-gray-400 leading-relaxed">
-                    Your data is stored securely in Supabase PostgreSQL with pgvector for semantic search. 
-                    All entries are encrypted and backed up automatically.
-                  </p>
-                </div>
-
-                <button className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-red-900/30 transition-all group border border-transparent hover:border-red-500/30">
-                  <div className="flex items-center gap-3">
-                    <Trash2 className="w-5 h-5 text-gray-400 group-hover:text-red-400" />
-                    <div className="text-left">
-                      <h3 className="text-white group-hover:text-red-400 font-medium">Delete Account</h3>
-                      <p className="text-sm text-gray-400">Permanently delete your account and all data</p>
-                    </div>
-                  </div>
-                  <ArrowLeft className="w-5 h-5 text-gray-400 group-hover:text-red-400 rotate-180" />
-                </button>
-              </div>
-            </div>
-
-            {/* About Section */}
-            <div className="bg-[#1a1a1a]/60 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-6">
-              <h2 className="text-lg font-bold text-white mb-4">About ReflectIQ</h2>
-              <div className="space-y-3 text-sm text-gray-400">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]"></div>
-                  <span>Version 1.0.0</span>
-                </div>
-                <p className="leading-relaxed">
-                  AI-powered journal that autonomously decides what to do based on your conversation. 
-                  No buttons—just chat naturally.
+        {/* Authentication */}
+        <section className="rounded-xl border border-border bg-card p-6">
+          <h2 className="font-display text-base font-semibold text-foreground flex items-center gap-2 mb-4">
+            <Lock className="h-4 w-4 text-primary" />
+            Security
+          </h2>
+          <button
+            type="button"
+            className="w-full flex items-center justify-between rounded-lg border border-border bg-background p-3.5 text-left hover:bg-secondary/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Key className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  Change Password
                 </p>
-                <div className="pt-2 space-y-2">
-                  <p className="text-white font-medium">Tech Stack:</p>
-                  <ul className="space-y-1 pl-4">
-                    <li>• React 18, TypeScript, Vite, Tailwind CSS</li>
-                    <li>• Express.js, WebSocket, Supabase PostgreSQL</li>
-                    <li>• Google Gemini 2.5 Flash, text-embedding-004</li>
-                    <li>• Supabase Auth, JWT tokens, Google OAuth 2.0</li>
-                  </ul>
-                </div>
-                <div className="flex gap-4 pt-4">
-                  <a href="#" className="text-[#4BBEBB] hover:underline">Privacy Policy</a>
-                  <a href="#" className="text-[#4BBEBB] hover:underline">Terms of Service</a>
-                  <a href="https://github.com/riteshkrkarn/ai-journal" target="_blank" rel="noopener noreferrer" className="text-[#4BBEBB] hover:underline">GitHub</a>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  Update your account password
+                </p>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
+            <ArrowLeft className="h-4 w-4 rotate-180 text-muted-foreground" />
+          </button>
+        </section>
+
+        {/* Data */}
+        <section className="rounded-xl border border-border bg-card p-6">
+          <h2 className="font-display text-base font-semibold text-foreground flex items-center gap-2 mb-4">
+            <Database className="h-4 w-4 text-primary" />
+            Data
+          </h2>
+          <button
+            type="button"
+            className="w-full flex items-center justify-between rounded-lg border border-border bg-background p-3.5 text-left hover:bg-secondary/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Download className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  Export Journal Data
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Download your entries and goals
+                </p>
+              </div>
+            </div>
+            <ArrowLeft className="h-4 w-4 rotate-180 text-muted-foreground" />
+          </button>
+        </section>
+      </main>
     </div>
   );
 };

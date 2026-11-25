@@ -5,8 +5,8 @@ import type { SubmitHandler } from "react-hook-form";
 import { getToken } from "../utils/auth";
 import { ArrowLeft, Users } from "lucide-react";
 import { API_BASE_URL } from "../config/env";
+import { ThemeToggle } from "../components/ThemeToggle";
 
-// Types for form data
 type CreateTeamFormData = {
   teamName: string;
 };
@@ -21,7 +21,6 @@ const CreateJoinTeam: React.FC = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Separate forms for create and join
   const createForm = useForm<CreateTeamFormData>();
   const joinForm = useForm<JoinTeamFormData>();
 
@@ -46,7 +45,6 @@ const CreateJoinTeam: React.FC = () => {
         throw new Error(result.error || "Failed to create team");
       }
 
-      // Navigate back to teams page
       navigate("/teamspace");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Create team failed";
@@ -77,7 +75,6 @@ const CreateJoinTeam: React.FC = () => {
         throw new Error(result.error || "Failed to join team");
       }
 
-      // Navigate back to teams page
       navigate("/teamspace");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Join team failed";
@@ -95,152 +92,151 @@ const CreateJoinTeam: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-full flex items-center justify-center bg-gray-950 p-4 sm:p-6 lg:p-8 font-['Inter',sans-serif] overflow-hidden">
-      <div className="w-full max-w-md bg-[#121212] p-8 sm:p-10 rounded-3xl shadow-2xl shadow-[#4BBEBB]/20 border border-gray-800">
-        {/* Back Button */}
+    <div className="min-h-screen w-full bg-background text-foreground flex flex-col">
+      <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
         <button
+          type="button"
           onClick={() => navigate("/teamspace")}
-          className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="w-5 h-5" />
-          <span>Back to Teams</span>
+          <ArrowLeft className="h-4 w-4" />
+          <span>Back to Team Space</span>
         </button>
 
-        {/* Icon */}
-        <div className="flex justify-center mb-6">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] flex items-center justify-center">
-            <Users className="w-8 h-8 text-white" />
+        <ThemeToggle compact />
+      </div>
+
+      <div className="flex flex-1 items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 sm:p-8 shadow-sm">
+          <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-lg bg-secondary text-primary">
+            <Users className="h-5 w-5" />
           </div>
-        </div>
 
-        <h1 className="text-4xl font-extrabold text-center mb-10 bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]">
-          {isCreate ? "Create Team" : "Join Team"}
-        </h1>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+            {isCreate ? "Create a team" : "Join a team"}
+          </h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            {isCreate
+              ? "Start a shared journal space and invite teammates with a code."
+              : "Enter the 6-character invite code shared by your team lead."}
+          </p>
 
-        {/* Error message */}
-        {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-900/30 border border-red-500 text-red-300 text-sm">
-            {error}
+          <div className="mt-6 mb-6 grid grid-cols-2 rounded-lg bg-secondary p-1 border border-border">
+            <button
+              type="button"
+              onClick={() => toggleMode("create")}
+              className={`rounded-md py-2 text-sm font-medium transition-colors ${
+                isCreate
+                  ? "bg-card text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Create
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleMode("join")}
+              className={`rounded-md py-2 text-sm font-medium transition-colors ${
+                !isCreate
+                  ? "bg-card text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Join
+            </button>
           </div>
-        )}
 
-        {/* Toggle Buttons */}
-        <div className="flex mb-8 bg-gray-800 p-1 rounded-xl shadow-inner shadow-gray-900/50">
-          <button
-            type="button"
-            onClick={() => toggleMode("create")}
-            className={`w-1/2 py-2 text-md font-semibold rounded-lg transition-all duration-300 ${
-              isCreate
-                ? "bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-black shadow-md shadow-cyan-500/30"
-                : "text-gray-400 hover:text-white hover:bg-gray-700"
-            }`}
-          >
-            Create
-          </button>
-          <button
-            type="button"
-            onClick={() => toggleMode("join")}
-            className={`w-1/2 py-2 text-md font-semibold rounded-lg transition-all duration-300 ${
-              !isCreate
-                ? "bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-black shadow-md shadow-cyan-500/30"
-                : "text-gray-400 hover:text-white hover:bg-gray-700"
-            }`}
-          >
-            Join
-          </button>
+          {error && (
+            <div className="mb-5 rounded-lg border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+
+          {isCreate ? (
+            <form
+              onSubmit={createForm.handleSubmit(onCreateSubmit)}
+              className="space-y-4"
+            >
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-foreground">
+                  Team name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g., Product Engineering"
+                  aria-label="Team Name"
+                  {...createForm.register("teamName", {
+                    required: "Team name is required",
+                    minLength: {
+                      value: 3,
+                      message: "Team name must be at least 3 characters",
+                    },
+                    maxLength: {
+                      value: 50,
+                      message: "Team name must be less than 50 characters",
+                    },
+                  })}
+                  className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                />
+                {createForm.formState.errors.teamName && (
+                  <p className="mt-1 text-xs text-destructive">
+                    {createForm.formState.errors.teamName.message}
+                  </p>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? "Creating..." : "Create Team"}
+              </button>
+            </form>
+          ) : (
+            <form
+              onSubmit={joinForm.handleSubmit(onJoinSubmit)}
+              className="space-y-4"
+            >
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-foreground">
+                  Invite code
+                </label>
+                <input
+                  type="text"
+                  placeholder="ABC123"
+                  aria-label="Invite Code"
+                  maxLength={6}
+                  {...joinForm.register("inviteCode", {
+                    required: "Invite code is required",
+                    pattern: {
+                      value: /^[A-Z0-9]{6}$/i,
+                      message:
+                        "Invite code must be 6 characters (letters and numbers)",
+                    },
+                  })}
+                  onChange={(e) => {
+                    e.target.value = e.target.value.toUpperCase();
+                  }}
+                  className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-center font-mono text-lg tracking-widest uppercase text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                />
+                {joinForm.formState.errors.inviteCode && (
+                  <p className="mt-1 text-xs text-destructive">
+                    {joinForm.formState.errors.inviteCode.message}
+                  </p>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? "Joining..." : "Join Team"}
+              </button>
+            </form>
+          )}
         </div>
-
-        {/* Create Team Form */}
-        {isCreate ? (
-          <form
-            onSubmit={createForm.handleSubmit(onCreateSubmit)}
-            className="space-y-5"
-          >
-            {/* Team Name Input */}
-            <div>
-              <input
-                type="text"
-                placeholder="Team Name"
-                aria-label="Team Name"
-                {...createForm.register("teamName", {
-                  required: "Team name is required",
-                  minLength: {
-                    value: 3,
-                    message: "Team name must be at least 3 characters",
-                  },
-                  maxLength: {
-                    value: 50,
-                    message: "Team name must be less than 50 characters",
-                  },
-                })}
-                className="w-full p-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-[#4BBEBB] focus:border-transparent outline-none transition duration-200 shadow-inner"
-              />
-              {createForm.formState.errors.teamName && (
-                <p className="text-red-400 text-sm mt-1">
-                  {createForm.formState.errors.teamName.message}
-                </p>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-white font-bold shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            >
-              {loading ? "Creating..." : "Create Team"}
-            </button>
-
-            <p className="text-gray-400 text-sm text-center mt-4">
-              You'll be the owner of this team and can invite members later.
-            </p>
-          </form>
-        ) : (
-          /* Join Team Form */
-          <form
-            onSubmit={joinForm.handleSubmit(onJoinSubmit)}
-            className="space-y-5"
-          >
-            {/* Invite Code Input */}
-            <div>
-              <input
-                type="text"
-                placeholder="Invite Code (e.g., ABC123)"
-                aria-label="Invite Code"
-                maxLength={6}
-                {...joinForm.register("inviteCode", {
-                  required: "Invite code is required",
-                  pattern: {
-                    value: /^[A-Z0-9]{6}$/i,
-                    message:
-                      "Invite code must be 6 characters (letters and numbers)",
-                  },
-                })}
-                onChange={(e) => {
-                  // Auto-uppercase the input
-                  e.target.value = e.target.value.toUpperCase();
-                }}
-                className="w-full p-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-[#4BBEBB] focus:border-transparent outline-none transition duration-200 shadow-inner uppercase tracking-wider text-center text-lg font-mono"
-              />
-              {joinForm.formState.errors.inviteCode && (
-                <p className="text-red-400 text-sm mt-1">
-                  {joinForm.formState.errors.inviteCode.message}
-                </p>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-white font-bold shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            >
-              {loading ? "Joining..." : "Join Team"}
-            </button>
-
-            <p className="text-gray-400 text-sm text-center mt-4">
-              Ask your team lead for the 6-character invite code.
-            </p>
-          </form>
-        )}
       </div>
     </div>
   );

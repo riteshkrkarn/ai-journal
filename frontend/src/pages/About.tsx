@@ -1,450 +1,353 @@
-import { Button } from "@/components/ui/button"
-import { useNavigate } from "react-router-dom"
-import { motion } from "framer-motion"
-import type { Variants } from "framer-motion"
-import { 
-  Sparkles, 
-  Target, 
+import { useNavigate } from "react-router-dom";
+import {
+  Target,
   Search,
   Calendar,
   Brain,
   MessageSquare,
-  CheckCircle2,
+  Lock,
   ArrowRight,
   Code2,
   Database,
-  Lock,
-  Github
-} from "lucide-react"
-import Navbar from "./Navbar"
+  Github,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Navbar from "./Navbar";
 
-// Add X icon component
 const XIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
-    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
   </svg>
 );
 
+const FEATURES = [
+  {
+    icon: Brain,
+    title: "Autonomous Journaling",
+    description:
+      "Auto-detects and saves daily reflections. Chat naturally and the assistant decides which tool to run.",
+  },
+  {
+    icon: Search,
+    title: "Semantic Search",
+    description:
+      "Find entries by meaning rather than exact keywords using 768-dimensional vector embeddings.",
+  },
+  {
+    icon: Target,
+    title: "Goal Tracking",
+    description:
+      "Creates goals when you mention deadlines and checks progress by analyzing your journal history.",
+  },
+  {
+    icon: Calendar,
+    title: "Calendar Integration",
+    description:
+      "Connect Google Calendar over OAuth and schedule events directly from conversation.",
+  },
+  {
+    icon: MessageSquare,
+    title: "Real-Time Streaming",
+    description:
+      "WebSocket connection with live responses, reconnect handling, and team collaboration.",
+  },
+  {
+    icon: Lock,
+    title: "Authenticated Spaces",
+    description:
+      "JWT-backed personal journals and invite-code team spaces with lead-only controls.",
+  },
+];
+
+const WORKFLOW_STEPS = [
+  {
+    step: "1",
+    title: "Send a natural message",
+    detail: "Share a reflection, a deadline, or a question about past work.",
+  },
+  {
+    step: "2",
+    title: "Intent & tool selection",
+    detail: "Gemini 2.5 Flash evaluates context and picks from 10 autonomous tools.",
+  },
+  {
+    step: "3",
+    title: "Structured persistence",
+    detail: "Entries are embedded into pgvector, goals are updated, or events are scheduled.",
+  },
+  {
+    step: "4",
+    title: "Grounded response",
+    detail: "The assistant replies in real time with what was saved or found.",
+  },
+];
+
+const USAGE_EXAMPLES = [
+  {
+    title: "Journaling",
+    user: "Today I finished the auth system and deployed to production.",
+    ai: "Great work! I have saved that to your journal.",
+  },
+  {
+    title: "Goals",
+    user: "I want to complete 15 DSA topics by December 31st.",
+    ai: "Goal created: Complete 15 DSA topics. You can check it in the Goals page.",
+  },
+  {
+    title: "Semantic Search",
+    user: "When did I work on the calendar feature?",
+    ai: "October 11th: Built Google Calendar OAuth integration.",
+  },
+];
+
+const TECH_STACK = [
+  {
+    icon: Code2,
+    category: "Frontend",
+    tech: "React 19, TypeScript, Vite, Tailwind CSS, WebSocket",
+  },
+  {
+    icon: Database,
+    category: "Backend & Vector Store",
+    tech: "Express.js, TypeScript, ws, Supabase PostgreSQL + pgvector",
+  },
+  {
+    icon: Brain,
+    category: "AI & Embeddings",
+    tech: "IQ AI ADK, Google Gemini 2.5 Flash, text-embedding-004 (768-dim)",
+  },
+  {
+    icon: Lock,
+    category: "Auth & Calendar",
+    tech: "Supabase Auth, JWT tokens, Google OAuth 2.0",
+  },
+];
+
+const DEVELOPERS = [
+  {
+    name: "Ritesh Kumar Karn",
+    role: "Backend & AI Services",
+    initial: "RK",
+    twitter: "https://x.com/riteshkrkarn",
+    github: "https://github.com/riteshkrkarn",
+  },
+  {
+    name: "Khushi Mishra",
+    role: "Frontend",
+    initial: "KM",
+    twitter: "https://x.com/Khushim1109",
+    github: "https://github.com/Khushi256",
+  },
+];
 
 function About() {
   const navigate = useNavigate();
 
-  // Animation variants
-  const containerVariants: Variants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2
-      }
-    }
-  };
-
-  const fadeInUp: Variants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.6,
-        ease: [0.6, 0.05, 0.01, 0.9]
-      }
-    }
-  };
-
-  const slideInLeft: Variants = {
-    hidden: { opacity: 0, x: -60 },
-    visible: {
-      opacity: 1,
-      x: 0,
-      transition: {
-        duration: 0.7,
-        ease: [0.6, 0.05, 0.01, 0.9]
-      }
-    }
-  };
-
-  const features = [
-    {
-      icon: Brain,
-      title: "Autonomous Journaling",
-      description: "Auto-detects and saves daily reflections. No buttons needed—just chat naturally and the AI decides what to do.",
-      gradient: "from-[#016BFF] to-[#4BBEBB]"
-    },
-    {
-      icon: Search,
-      title: "Semantic Search",
-      description: "Find entries by meaning, not keywords. Uses 768-dimensional vectors for intelligent context-based search.",
-      gradient: "from-[#4BBEBB] to-[#016BFF]"
-    },
-    {
-      icon: Target,
-      title: "Smart Goal Tracking",
-      description: "AI monitors progress via journal analysis. Automatically tracks goals when you mention deadlines in conversation.",
-      gradient: "from-[#016BFF] to-[#4BBEBB]"
-    },
-    {
-      icon: Calendar,
-      title: "Calendar Integration",
-      description: "Natural language → Google Calendar events. Schedule from conversation without manual data entry.",
-      gradient: "from-[#4BBEBB] to-[#016BFF]"
-    },
-    {
-      icon: MessageSquare,
-      title: "Real-time Chat",
-      description: "WebSocket with typing effects and auto-reconnect. Experience seamless, instant communication.",
-      gradient: "from-[#016BFF] to-[#4BBEBB]"
-    },
-    {
-      icon: Lock,
-      title: "Multi-user Auth",
-      description: "Secure JWT-based authentication with Supabase Auth and Google OAuth 2.0 integration.",
-      gradient: "from-[#4BBEBB] to-[#016BFF]"
-    }
-  ];
-
-  const techStack = [
-    { 
-      category: "Frontend", 
-      tech: "React 18, TypeScript, Vite, Tailwind CSS, WebSocket",
-      icon: Code2,
-      color: "text-blue-400"
-    },
-    { 
-      category: "Backend", 
-      tech: "Express.js, TypeScript, WebSocket (ws), Supabase PostgreSQL + pgvector",
-      icon: Database,
-      color: "text-cyan-400"
-    },
-    { 
-      category: "AI", 
-      tech: "IQ AI ADK v0.3.7, Google Gemini 2.5 Flash, text-embedding-004 (768-dim)",
-      icon: Brain,
-      color: "text-purple-400"
-    },
-    { 
-      category: "Auth", 
-      tech: "Supabase Auth, JWT tokens, Google OAuth 2.0",
-      icon: Lock,
-      color: "text-green-400"
-    }
-  ];
-
-  const usageExamples = [
-    {
-      title: "Journaling",
-      user: "Today I finished the auth system and deployed to production",
-      ai: "Great work! I've saved that to your journal."
-    },
-    {
-      title: "Goals",
-      user: "I want to complete 15 DSA topics by December 31st",
-      ai: "Goal created: \"Complete 15 DSA topics\". You can check it in the Goals page."
-    },
-    {
-      title: "Search",
-      user: "When did I work on the calendar feature?",
-      ai: "October 11th: \"Built Google Calendar OAuth integration...\""
-    }
-  ];
-
-  const developers = [
-    {
-      name: "Ritesh Kumar Karn",
-      role: "Full Stack Developer",
-      twitter: "https://twitter.com/riteshkrkarn",
-      github: "https://github.com/riteshkrkarn",
-      initial: "R"
-    },
-    {
-      name: "Khushi Mishra",
-      role: "Frontend Developer",
-      twitter: "https://x.com/Khushim1109",
-      github: "https://github.com/Khushi256",
-      initial: "K"
-    }
-  ];
-
   return (
-    <div className="min-h-screen w-full bg-black overflow-x-hidden font-[Inter,sans-serif] relative">
-      {/* Animated background gradients */}
-      <div className="fixed inset-0 opacity-20">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#016BFF] rounded-full filter blur-[120px] animate-pulse"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#4BBEBB] rounded-full filter blur-[120px] animate-pulse" style={{ animationDelay: '1s' }}></div>
-      </div>
+    <div className="min-h-screen w-full bg-background text-foreground flex flex-col">
+      <Navbar />
 
-      {/* Navbar */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className='bg-transparent relative z-10'
-      >
-        <Navbar />
-      </motion.div>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        {/* Header */}
+        <section className="max-w-3xl pb-12 border-b border-border">
+          <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
+            How ReflectIQ works
+          </h1>
+          <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
+            ReflectIQ replaces manual forms and folder hierarchies with a single
+            conversational stream backed by autonomous tool execution and
+            semantic vector search.
+          </p>
+        </section>
 
-      {/* Main Content */}
-      <div className="relative z-10 px-6 sm:px-8 md:px-12 lg:px-20 py-12 md:py-16">
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="max-w-7xl mx-auto"
-        >
-          {/* Hero Section */}
-          <motion.div variants={fadeInUp} className="text-center mb-20">
-            <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-full bg-gradient-to-r from-[#016BFF]/10 to-[#4BBEBB]/10 border border-[#4BBEBB]/30 backdrop-blur-sm">
-              <Sparkles className="w-4 h-4 text-[#4BBEBB]" />
-              <span className="text-sm font-medium text-gray-300">AI-Powered Journal</span>
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold mb-6 tracking-tight leading-tight">
-              <span className="text-white">No Buttons—</span>
-              <br />
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]">
-                Just Chat Naturally
-              </span>
-            </h1>
-
-            <p className="text-gray-400 text-base sm:text-lg md:text-xl max-w-3xl mx-auto leading-relaxed">
-              ReflectIQ autonomously decides what to do based on your conversation. 
-              Talk like a friend—it automatically saves entries, creates goals, searches history, 
-              and schedules events.
-            </p>
-          </motion.div>
-
-          {/* What It Does */}
-          <motion.div variants={fadeInUp} className="mb-20">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-8">
-              What It Does
-            </h2>
-            <div className="max-w-4xl space-y-3">
-              {[
-                "Saves journal entries when you share daily experiences",
-                "Creates goals when you mention deadlines",
-                "Searches past entries using semantic meaning",
-                "Tracks goal progress by analyzing your journal",
-                "Schedules Google Calendar events from natural language"
-              ].map((item, index) => (
-                <motion.div
-                  key={index}
-                  variants={slideInLeft}
-                  whileHover={{ x: 5 }}
-                  className="flex items-start gap-3 p-4 rounded-lg bg-black/40 border border-[#4BBEBB]/10 hover:border-[#4BBEBB]/30 transition-all"
-                >
-                  <CheckCircle2 className="w-5 h-5 text-[#4BBEBB] flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-300">{item}</span>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Features Grid */}
-          <motion.div variants={fadeInUp} className="mb-20">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-8">
-              Features
-            </h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {features.map((feature, index) => (
-                <motion.div
-                  key={index}
-                  variants={fadeInUp}
-                  whileHover={{ 
-                    y: -5,
-                    transition: { duration: 0.2 }
-                  }}
-                  className="p-6 rounded-xl bg-black/40 border border-[#4BBEBB]/20 hover:border-[#4BBEBB]/40 transition-all duration-300"
-                >
-                  <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-4`}>
-                    <feature.icon className="w-6 h-6 text-black" />
-                  </div>
-                  <h3 className="text-lg font-bold text-white mb-2">{feature.title}</h3>
-                  <p className="text-gray-400 text-sm leading-relaxed">{feature.description}</p>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* How It Works */}
-          <motion.div 
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-            variants={containerVariants}
-            className="mb-20"
-          >
-            <motion.h2 variants={fadeInUp} className="text-2xl md:text-3xl font-bold text-white mb-8">
-              How It Works
-            </motion.h2>
-            <div className="max-w-4xl">
-              <div className="space-y-6">
-                {[
-                  { step: "1", title: "User Message", desc: "Start a conversation naturally" },
-                  { step: "2", title: "WebSocket → Backend", desc: "Secure JWT authentication" },
-                  { step: "3", title: "AI Agent (Gemini 2.5 Flash)", desc: "Analyzes user intent and selects appropriate tools" },
-                  { step: "4", title: "Tool Execution", desc: "Save entry, search history, create goals, or add calendar events" },
-                  { step: "5", title: "Streaming Response", desc: "Word-by-word typing effect in real-time" }
-                ].map((item, index) => (
-                  <motion.div
-                    key={index}
-                    variants={slideInLeft}
-                    whileHover={{ x: 5 }}
-                    className="flex gap-4 items-start p-4 rounded-lg bg-black/40 border border-[#4BBEBB]/10 hover:border-[#4BBEBB]/30 transition-all"
-                  >
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-[#016BFF] to-[#4BBEBB] flex items-center justify-center text-black font-bold">
-                      {item.step}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-white font-semibold mb-1">{item.title}</h3>
-                      <p className="text-gray-400 text-sm">{item.desc}</p>
-                    </div>
-                  </motion.div>
-                ))}
+        {/* Capabilities */}
+        <section className="py-12 border-b border-border">
+          <h2 className="font-display text-2xl font-bold tracking-tight text-foreground mb-8">
+            Core Capabilities
+          </h2>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map((feature) => (
+              <div
+                key={feature.title}
+                className="rounded-xl border border-border bg-card p-5"
+              >
+                <feature.icon className="h-5 w-5 text-primary mb-3" />
+                <h3 className="font-display text-base font-semibold text-foreground">
+                  {feature.title}
+                </h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                  {feature.description}
+                </p>
               </div>
-            </div>
-          </motion.div>
+            ))}
+          </div>
+        </section>
 
-          {/* Usage Examples */}
-          <motion.div variants={fadeInUp} className="mb-20">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-8">
-              Usage Examples
-            </h2>
-            <div className="grid md:grid-cols-3 gap-6">
-              {usageExamples.map((example, index) => (
-                <motion.div
-                  key={index}
-                  variants={fadeInUp}
-                  whileHover={{ y: -5 }}
-                  className="p-6 rounded-xl bg-black/40 border border-[#4BBEBB]/20"
-                >
-                  <h3 className="text-white font-bold mb-4 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-[#4BBEBB]" />
-                    {example.title}
+        {/* Pipeline */}
+        <section className="py-12 border-b border-border">
+          <h2 className="font-display text-2xl font-bold tracking-tight text-foreground mb-8">
+            Request Pipeline
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {WORKFLOW_STEPS.map((item) => (
+              <div
+                key={item.step}
+                className="rounded-xl border border-border bg-card p-5"
+              >
+                <span className="font-mono text-xs font-medium text-primary">
+                  Step {item.step}
+                </span>
+                <h3 className="mt-2 font-display text-base font-semibold text-foreground">
+                  {item.title}
+                </h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                  {item.detail}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Usage Examples */}
+        <section className="py-12 border-b border-border">
+          <h2 className="font-display text-2xl font-bold tracking-tight text-foreground mb-8">
+            Conversation Examples
+          </h2>
+          <div className="grid gap-6 md:grid-cols-3">
+            {USAGE_EXAMPLES.map((example) => (
+              <div
+                key={example.title}
+                className="rounded-xl border border-border bg-card p-5 space-y-4"
+              >
+                <h3 className="font-display text-base font-semibold text-foreground">
+                  {example.title}
+                </h3>
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <span className="font-mono text-[11px] text-muted-foreground block mb-1">
+                      You
+                    </span>
+                    <p className="text-foreground leading-relaxed">
+                      "{example.user}"
+                    </p>
+                  </div>
+                  <div className="border-t border-border pt-3">
+                    <span className="font-mono text-[11px] text-primary block mb-1">
+                      ReflectIQ
+                    </span>
+                    <p className="text-muted-foreground leading-relaxed">
+                      "{example.ai}"
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Tech Stack */}
+        <section className="py-12 border-b border-border">
+          <h2 className="font-display text-2xl font-bold tracking-tight text-foreground mb-8">
+            Technical Architecture
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {TECH_STACK.map((item) => (
+              <div
+                key={item.category}
+                className="flex items-start gap-3.5 rounded-xl border border-border bg-card p-5"
+              >
+                <item.icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">
+                    {item.category}
                   </h3>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">You:</p>
-                      <p className="text-gray-300 text-sm italic">"{example.user}"</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">AI:</p>
-                      <p className="text-gray-400 text-sm">"{example.ai}"</p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Tech Stack */}
-          <motion.div variants={fadeInUp} className="mb-20">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-8">
-              Tech Stack
-            </h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              {techStack.map((item, index) => (
-                <motion.div
-                  key={index}
-                  variants={fadeInUp}
-                  whileHover={{ x: 5 }}
-                  className="p-5 rounded-xl bg-black/40 border border-[#4BBEBB]/20"
-                >
-                  <div className="flex items-start gap-3">
-                    <item.icon className={`w-5 h-5 ${item.color} flex-shrink-0 mt-0.5`} />
-                    <div>
-                      <span className="font-bold text-white">{item.category}:</span>
-                      <p className="text-gray-400 text-sm mt-1">{item.tech}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Developers Section */}
-<motion.div variants={fadeInUp} className="mb-20">
-  <h2 className="text-2xl md:text-3xl font-bold text-white text-center mb-4">
-    Meet the Team
-  </h2>
-  <p className="text-gray-400 text-center mb-12 max-w-2xl mx-auto">
-    Built with passion by developers who believe in the power of AI-driven personal growth
-  </p>
-  <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-    {developers.map((dev, index) => (
-      <motion.div
-        key={index}
-        variants={fadeInUp}
-        whileHover={{ y: -5 }}
-        className="p-6 rounded-xl bg-black/40 border border-[#4BBEBB]/20 hover:border-[#4BBEBB]/40 transition-all"
-      >
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#016BFF] to-[#4BBEBB] flex items-center justify-center text-white font-bold text-2xl">
-            {dev.initial}
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-white">{dev.name}</h3>
-            <p className="text-sm text-gray-400">{dev.role}</p>
-          </div>
-        </div>
-        <div className="flex gap-3">
-          <a
-            href={dev.twitter}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800/60 hover:bg-gray-700/60 text-gray-300 hover:text-white transition-all group"
-          >
-            <XIcon />
-            
-          </a>
-          <a
-            href={dev.github}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800/60 hover:bg-gray-700/60 text-gray-300 hover:text-white transition-all group"
-          >
-            <Github className="w-4 h-4 group-hover:text-[#4BBEBB]" />
-            
-          </a>
-        </div>
-      </motion.div>
-    ))}
-  </div>
-</motion.div>
-
-          {/* CTA Section */}
-          <motion.div variants={fadeInUp} className="text-center pb-8">
-            <div className="inline-block p-10 rounded-2xl bg-gradient-to-br from-[#016BFF]/10 to-[#4BBEBB]/10 border border-[#4BBEBB]/30 backdrop-blur-sm">
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
-                Ready to Start Journaling?
-              </h2>
-              <p className="text-gray-400 mb-8 max-w-xl mx-auto">
-                Experience autonomous AI journaling. No buttons, no commands—just natural conversation.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-                  <Button
-                    onClick={() => navigate('/auth')}
-                    className="px-8 py-5 text-base font-bold border-none rounded-xl bg-gradient-to-r from-[#4BBEBB] to-[#016BFF] shadow-xl shadow-[#4BBEBB]/50 hover:shadow-[#4BBEBB]/70 transition-all duration-300 text-black hover:brightness-110 flex items-center gap-2"
-                  >
-                    Get Started
-                    <ArrowRight className="w-5 h-5" />
-                  </Button>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-                  <Button
-                    onClick={() => navigate('/')}
-                    variant="outline"
-                    className="px-8 py-5 text-base font-semibold rounded-xl border-2 border-[#4BBEBB]/40 bg-transparent text-gray-300 hover:bg-[#4BBEBB]/10 hover:border-[#4BBEBB]/60 hover:text-white transition-all duration-300"
-                  >
-                    Back to Home
-                  </Button>
-                </motion.div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {item.tech}
+                  </p>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        </motion.div>
-      </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Contributors */}
+        <section className="py-12 border-b border-border">
+          <h2 className="font-display text-2xl font-bold tracking-tight text-foreground mb-2">
+            Contributors
+          </h2>
+          <p className="text-sm text-muted-foreground mb-8">
+            Built by engineers focused on calm, autonomous personal software.
+          </p>
+          <div className="grid gap-6 sm:grid-cols-2">
+            {DEVELOPERS.map((dev) => (
+              <div
+                key={dev.name}
+                className="flex items-center justify-between rounded-xl border border-border bg-card p-5"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-secondary font-mono text-sm font-semibold text-foreground border border-border">
+                    {dev.initial}
+                  </div>
+                  <div>
+                    <h3 className="font-display text-base font-semibold text-foreground">
+                      {dev.name}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">{dev.role}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={dev.twitter}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${dev.name} on X`}
+                    className="rounded-lg border border-border bg-background p-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                  >
+                    <XIcon />
+                  </a>
+                  <a
+                    href={dev.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${dev.name} on GitHub`}
+                    className="rounded-lg border border-border bg-background p-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                  >
+                    <Github className="h-4 w-4" />
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Bottom CTA */}
+        <section className="pt-12 flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
+          <div>
+            <h2 className="font-display text-2xl font-bold text-foreground">
+              Ready to try conversational journaling?
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Sign in or create an account to open your workspace.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => navigate("/auth")}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
+            >
+              Get Started
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+            <Button
+              onClick={() => navigate("/")}
+              variant="outline"
+              className="border-border bg-card text-foreground hover:bg-secondary"
+            >
+              Home
+            </Button>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }

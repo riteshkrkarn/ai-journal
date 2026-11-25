@@ -4,9 +4,11 @@ import AuthPage from "./pages/AuthPage";
 import ChatBot from "./pages/ChatBot";
 import TeamSpace from "./pages/TeamSpace";
 import CreateJoinTeam from "./pages/CreateJoinTeam";
+import About from "./pages/About";
+import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
 import { hasAuth } from "./utils/auth";
-import About from './pages/About'
-
+import { ThemeProvider } from "./context/ThemeContext";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = hasAuth();
@@ -16,65 +18,65 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function DashboardPage() {
-  return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <ChatBot />
-    </div>
-  );
-}
-
 const handleTeamBack = () => {
-  console.log("Going back from team space");
   window.location.href = "/dashboard";
 };
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Landing Page Route (usually the root path) */}
-        <Route path="/" element={<LandingPage />} />
+    <ThemeProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/about" element={<About />} />
 
-        {/* Auth routes - AuthPage handles both login and signup */}
-        <Route path="/auth" element={<AuthPage />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <ChatBot />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Protected routes */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              {/* Using DashboardPage as a wrapper for ChatBot or main content */}
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/teamspace"
+            element={
+              <ProtectedRoute>
+                <TeamSpace onBack={handleTeamBack} />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/teamspace"
-          element={
-            <ProtectedRoute>
-              <TeamSpace onBack={handleTeamBack} />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/create-join-team"
+            element={
+              <ProtectedRoute>
+                <CreateJoinTeam />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/create-join-team"
-          element={
-            <ProtectedRoute>
-              <CreateJoinTeam />
-            </ProtectedRoute>
-          }
-        />
-      <Route 
-          path="/about" 
-          element={
-            <ProtectedRoute>
-              <About />
-            </ProtectedRoute>
-          }/>
-      </Routes>
-    </BrowserRouter>
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }

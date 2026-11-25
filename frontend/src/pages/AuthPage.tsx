@@ -1,14 +1,11 @@
-// First, install React Hook Form:
-// npm install react-hook-form
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import type { SubmitHandler } from "react-hook-form";
 import { login, register, hasAuth } from "../utils/auth";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { ThemeToggle } from "../components/ThemeToggle";
 
-// Types for form data
 type SigninFormData = {
   email: string;
   password: string;
@@ -25,20 +22,17 @@ const AuthPage: React.FC = () => {
   const [isSignin, setIsSignin] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  
-  // Password visibility states
+
   const [showSigninPassword, setShowSigninPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Redirect to dashboard if already authenticated
   useEffect(() => {
     if (hasAuth()) {
       navigate("/dashboard", { replace: true });
     }
   }, [navigate]);
 
-  // Separate forms for signin and signup
   const signinForm = useForm<SigninFormData>();
   const signupForm = useForm<SignupFormData>();
 
@@ -62,7 +56,6 @@ const AuthPage: React.FC = () => {
     setLoading(true);
 
     try {
-      // Use email username as fullName for simplicity
       const fullName = data.email.split("@")[0];
       await register(data.email, data.password, fullName);
       navigate("/dashboard");
@@ -76,288 +69,286 @@ const AuthPage: React.FC = () => {
 
   const toggleAuthMode = (mode: "signin" | "signup") => {
     setIsSignin(mode === "signin");
-    // Reset forms when switching modes
+    setError("");
     signinForm.reset();
     signupForm.reset();
-    // Reset password visibility
     setShowSigninPassword(false);
     setShowSignupPassword(false);
     setShowConfirmPassword(false);
   };
 
+  const inputClasses =
+    "w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-colors";
+
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-950 p-4 sm:p-6 lg:p-8 font-['Inter',sans-serif]">
-      <div className="w-full max-w-md bg-[#121212] p-8 sm:p-10 rounded-3xl shadow-2xl shadow-[#4BBEBB]/20 border border-gray-800">
-        <div className="flex justify-center mb-6">
-          <div
-            className="flex items-center space-x-2 cursor-pointer"
-            onClick={() => navigate("/")}
-          >
-            <svg
-              className="w-8 h-8 text-[#4BBEBB]"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12.5 7.5C11.67 7.5 11 8.17 11 9V9.5C11 9.78 10.78 10 10.5 10H8C7.45 10 7 10.45 7 11C7 11.55 7.45 12 8 12H9C9.55 12 10 12.45 10 13V15C10 15.55 10.45 16 11 16C11.55 16 12 15.55 12 15V13C12 12.45 12.45 12 13 12H15C15.55 12 16 11.55 16 11C16 10.45 15.55 10 15 10H14C13.45 10 13 9.55 13 9V7.5C13 6.95 12.55 6.5 12 6.5C11.45 6.5 11 6.95 11 7.5V7.5Z" />
-            </svg>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]">
+    <div className="min-h-screen w-full bg-background text-foreground flex flex-col">
+      {/* Minimal top bar */}
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Back to home</span>
+        </button>
+
+        <ThemeToggle compact />
+      </div>
+
+      {/* Centered auth sheet */}
+      <div className="flex flex-1 items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 sm:p-8 shadow-sm">
+          <div className="flex items-center gap-2.5 mb-6">
+            <img
+              src="/logo-img.png"
+              alt="ReflectIQ mark"
+              className="h-7 w-7 rounded-md object-contain"
+            />
+            <span className="font-display text-lg font-bold tracking-tight text-foreground">
               ReflectIQ
             </span>
           </div>
-        </div>
 
-        <h1
-          className="
-                    text-4xl font-extrabold text-center mb-10 
-                    bg-clip-text text-transparent 
-                    bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]
-                "
-        >
-          {isSignin ? "Welcome Back" : "Create Your Account"}
-        </h1>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+            {isSignin ? "Sign in to your journal" : "Create your account"}
+          </h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            {isSignin
+              ? "Continue your conversation, goals, and team spaces."
+              : "Start capturing reflections and goals through natural chat."}
+          </p>
 
-        {/* Error message */}
-        {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-900/30 border border-red-500 text-red-300 text-sm">
-            {error}
+          {/* Segmented mode switch */}
+          <div className="mt-6 mb-6 grid grid-cols-2 rounded-lg bg-secondary p-1 border border-border">
+            <button
+              type="button"
+              onClick={() => toggleAuthMode("signin")}
+              className={`rounded-md py-2 text-sm font-medium transition-colors ${
+                isSignin
+                  ? "bg-card text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleAuthMode("signup")}
+              className={`rounded-md py-2 text-sm font-medium transition-colors ${
+                !isSignin
+                  ? "bg-card text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Sign Up
+            </button>
           </div>
-        )}
 
-        <div className="flex mb-8 bg-gray-800 p-1 rounded-xl shadow-inner shadow-gray-900/50">
-          <button
-            type="button"
-            onClick={() => toggleAuthMode("signin")}
-            className={`w-1/2 py-2 text-md font-semibold rounded-lg transition-all duration-300 ${
-              isSignin
-                ? "bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-black shadow-md shadow-cyan-500/30"
-                : "text-gray-400 hover:text-white hover:bg-gray-700"
-            }`}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            onClick={() => toggleAuthMode("signup")}
-            className={`w-1/2 py-2 text-md font-semibold rounded-lg transition-all duration-300 ${
-              !isSignin
-                ? "bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-black shadow-md shadow-cyan-500/30"
-                : "text-gray-400 hover:text-white hover:bg-gray-700"
-            }`}
-          >
-            Sign Up
-          </button>
+          {error && (
+            <div className="mb-5 rounded-lg border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+
+          {isSignin ? (
+            <form
+              onSubmit={signinForm.handleSubmit(onSigninSubmit)}
+              className="space-y-4"
+            >
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-foreground">
+                  Email address
+                </label>
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  aria-label="Email Address"
+                  {...signinForm.register("email", {
+                    required: "Email is required",
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: "Invalid email address",
+                    },
+                  })}
+                  className={inputClasses}
+                />
+                {signinForm.formState.errors.email && (
+                  <p className="mt-1 text-xs text-destructive">
+                    {signinForm.formState.errors.email.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-foreground">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showSigninPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    aria-label="Password"
+                    {...signinForm.register("password", {
+                      required: "Password is required",
+                      minLength: {
+                        value: 6,
+                        message: "Password must be at least 6 characters",
+                      },
+                    })}
+                    className={`${inputClasses} pr-10`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSigninPassword(!showSigninPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={
+                      showSigninPassword ? "Hide password" : "Show password"
+                    }
+                  >
+                    {showSigninPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                {signinForm.formState.errors.password && (
+                  <p className="mt-1 text-xs text-destructive">
+                    {signinForm.formState.errors.password.message}
+                  </p>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="mt-2 w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? "Signing In..." : "Sign In"}
+              </button>
+            </form>
+          ) : (
+            <form
+              onSubmit={signupForm.handleSubmit(onSignupSubmit)}
+              className="space-y-4"
+            >
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-foreground">
+                  Email address
+                </label>
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  aria-label="Email Address"
+                  {...signupForm.register("email", {
+                    required: "Email is required",
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: "Invalid email address",
+                    },
+                  })}
+                  className={inputClasses}
+                />
+                {signupForm.formState.errors.email && (
+                  <p className="mt-1 text-xs text-destructive">
+                    {signupForm.formState.errors.email.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-foreground">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showSignupPassword ? "text" : "password"}
+                    placeholder="At least 6 characters"
+                    aria-label="Password"
+                    {...signupForm.register("password", {
+                      required: "Password is required",
+                      minLength: {
+                        value: 6,
+                        message: "Password must be at least 6 characters",
+                      },
+                    })}
+                    className={`${inputClasses} pr-10`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSignupPassword(!showSignupPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={
+                      showSignupPassword ? "Hide password" : "Show password"
+                    }
+                  >
+                    {showSignupPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                {signupForm.formState.errors.password && (
+                  <p className="mt-1 text-xs text-destructive">
+                    {signupForm.formState.errors.password.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-foreground">
+                  Confirm password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Re-enter your password"
+                    aria-label="Confirm Password"
+                    {...signupForm.register("confirmPassword", {
+                      required: "Please confirm your password",
+                      validate: (value: string) => {
+                        const { password } = signupForm.getValues();
+                        return value === password || "Passwords do not match";
+                      },
+                    })}
+                    className={`${inputClasses} pr-10`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowConfirmPassword(!showConfirmPassword)
+                    }
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={
+                      showConfirmPassword ? "Hide password" : "Show password"
+                    }
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                {signupForm.formState.errors.confirmPassword && (
+                  <p className="mt-1 text-xs text-destructive">
+                    {signupForm.formState.errors.confirmPassword.message}
+                  </p>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="mt-2 w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? "Creating Account..." : "Create Account"}
+              </button>
+            </form>
+          )}
         </div>
-
-        {/* Signin Form */}
-        {isSignin ? (
-          <form
-            onSubmit={signinForm.handleSubmit(onSigninSubmit)}
-            className="space-y-5"
-          >
-            {/* Email Input */}
-            <div>
-              <input
-                type="email"
-                placeholder="Email Address"
-                aria-label="Email Address"
-                {...signinForm.register("email", {
-                  required: "Email is required",
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: "Invalid email address",
-                  },
-                })}
-                className="w-full p-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-[#4BBEBB] focus:border-transparent outline-none transition duration-200 shadow-inner"
-              />
-              {signinForm.formState.errors.email && (
-                <p className="text-red-400 text-sm mt-1">
-                  {signinForm.formState.errors.email.message}
-                </p>
-              )}
-            </div>
-
-            {/* Password Input with Eye Icon */}
-            <div>
-              <div className="relative">
-                <input
-                  type={showSigninPassword ? "text" : "password"}
-                  placeholder="Password"
-                  aria-label="Password"
-                  {...signinForm.register("password", {
-                    required: "Password is required",
-                    minLength: {
-                      value: 6,
-                      message: "Password must be at least 6 characters",
-                    },
-                  })}
-                  className="w-full p-3 pr-12 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-[#4BBEBB] focus:border-transparent outline-none transition duration-200 shadow-inner"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowSigninPassword(!showSigninPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#4BBEBB] transition-colors"
-                  aria-label={showSigninPassword ? "Hide password" : "Show password"}
-                >
-                  {showSigninPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-              {signinForm.formState.errors.password && (
-                <p className="text-red-400 text-sm mt-1">
-                  {signinForm.formState.errors.password.message}
-                </p>
-              )}
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="
-                                w-full py-3 mt-6 text-xl font-extrabold text-black 
-                                bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]
-                                shadow-xl shadow-cyan-500/30 
-                                hover:shadow-cyan-400/50 
-                                transition-all duration-300 hover:scale-[1.01]
-                                rounded-lg
-                                disabled:opacity-50 disabled:cursor-not-allowed
-                            "
-            >
-              {loading ? "Signing In..." : "Sign In"}
-            </button>
-          </form>
-        ) : (
-          /* Signup Form */
-          <form
-            onSubmit={signupForm.handleSubmit(onSignupSubmit)}
-            className="space-y-5"
-          >
-            {/* Email Input */}
-            <div>
-              <input
-                type="email"
-                placeholder="Email Address"
-                aria-label="Email Address"
-                {...signupForm.register("email", {
-                  required: "Email is required",
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: "Invalid email address",
-                  },
-                })}
-                className="w-full p-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-[#4BBEBB] focus:border-transparent outline-none transition duration-200 shadow-inner"
-              />
-              {signupForm.formState.errors.email && (
-                <p className="text-red-400 text-sm mt-1">
-                  {signupForm.formState.errors.email.message}
-                </p>
-              )}
-            </div>
-
-            {/* Password Input with Eye Icon */}
-            <div>
-              <div className="relative">
-                <input
-                  type={showSignupPassword ? "text" : "password"}
-                  placeholder="Password"
-                  aria-label="Password"
-                  {...signupForm.register("password", {
-                    required: "Password is required",
-                    minLength: {
-                      value: 6,
-                      message: "Password must be at least 6 characters",
-                    },
-                  })}
-                  className="w-full p-3 pr-12 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-[#4BBEBB] focus:border-transparent outline-none transition duration-200 shadow-inner"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowSignupPassword(!showSignupPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#4BBEBB] transition-colors"
-                  aria-label={showSignupPassword ? "Hide password" : "Show password"}
-                >
-                  {showSignupPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-              {signupForm.formState.errors.password && (
-                <p className="text-red-400 text-sm mt-1">
-                  {signupForm.formState.errors.password.message}
-                </p>
-              )}
-            </div>
-
-            {/* Confirm Password with Eye Icon */}
-            <div>
-              <div className="relative">
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm Password"
-                  aria-label="Confirm Password"
-                  {...signupForm.register("confirmPassword", {
-                    required: "Please confirm your password",
-                    validate: (value: string) => {
-                      const { password } = signupForm.getValues();
-                      return value === password || "Passwords do not match";
-                    },
-                  })}
-                  className="w-full p-3 pr-12 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-[#4BBEBB] focus:border-transparent outline-none transition duration-200 shadow-inner"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#4BBEBB] transition-colors"
-                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-              {signupForm.formState.errors.confirmPassword && (
-                <p className="text-red-400 text-sm mt-1">
-                  {signupForm.formState.errors.confirmPassword.message}
-                </p>
-              )}
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="
-                                w-full py-3 mt-6 text-xl font-extrabold text-black 
-                                bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]
-                                shadow-xl shadow-cyan-500/30 
-                                hover:shadow-cyan-400/50 
-                                transition-all duration-300 hover:scale-[1.01]
-                                rounded-lg
-                                disabled:opacity-50 disabled:cursor-not-allowed
-                            "
-            >
-              {loading ? "Signing Up..." : "Sign Up"}
-            </button>
-          </form>
-        )}
-
-        <p className="text-center text-sm mt-6 text-gray-500">
-          {isSignin ? "Don't have an account? " : "Already have an account? "}
-          <button
-            type="button"
-            onClick={() => setIsSignin(!isSignin)}
-            className="text-[#4BBEBB] font-medium hover:text-cyan-400 transition-colors"
-          >
-            {isSignin ? "Sign Up" : "Sign In"}
-          </button>
-        </p>
       </div>
     </div>
   );

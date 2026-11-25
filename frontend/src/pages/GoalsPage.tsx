@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, CheckCircle2, Circle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, Info } from "lucide-react";
 import { API_BASE_URL } from "../config/env";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 interface Goal {
   id: string;
@@ -31,31 +32,23 @@ const GoalsPage: React.FC<GoalsPageProps> = ({ onBack }) => {
       setLoading(true);
       const token = localStorage.getItem("jwt_token");
 
-      // Fetch personal goals
       const myRes = await fetch(`${API_BASE_URL}/goals`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (myRes.ok) {
         const data = await myRes.json();
-        console.log("[GOALS] Personal goals:", data.goals);
         setMyGoals(data.goals || []);
-      } else {
-        console.error("[GOALS] Failed to fetch personal goals:", myRes.status);
       }
 
-      // Get user's teams first
       const teamsRes = await fetch(`${API_BASE_URL}/teams`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (teamsRes.ok) {
         const teamsData = await teamsRes.json();
-        console.log("[GOALS] Teams data:", teamsData);
         if (teamsData.teams && teamsData.teams.length > 0) {
           setHasTeams(true);
           const firstTeam = teamsData.teams[0];
-          console.log("[GOALS] First team:", firstTeam);
 
-          // Fetch team goals for first team
           const teamGoalsRes = await fetch(
             `${API_BASE_URL}/goals/team/${firstTeam.id}`,
             {
@@ -64,21 +57,12 @@ const GoalsPage: React.FC<GoalsPageProps> = ({ onBack }) => {
           );
           if (teamGoalsRes.ok) {
             const teamGoalsData = await teamGoalsRes.json();
-            console.log("[GOALS] Team goals:", teamGoalsData.goals);
             setTeamGoals(teamGoalsData.goals || []);
-          } else {
-            console.error(
-              "[GOALS] Failed to fetch team goals:",
-              teamGoalsRes.status
-            );
           }
         } else {
-          console.log("[GOALS] No teams found");
           setHasTeams(false);
           setActiveTab("my");
         }
-      } else {
-        console.error("[GOALS] Failed to fetch teams:", teamsRes.status);
       }
     } catch (error) {
       console.error("[GOALS] Fetch error:", error);
@@ -97,48 +81,8 @@ const GoalsPage: React.FC<GoalsPageProps> = ({ onBack }) => {
   };
 
   const isOverdue = (deadline: string) => {
-    return new Date(deadline) < new Date() && deadline;
+    return Boolean(deadline) && new Date(deadline) < new Date();
   };
-
-  const GoalCard: React.FC<{ goal: Goal }> = ({ goal }) => (
-    <div className="bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 rounded-xl p-4 hover:bg-gray-800/60 transition-all">
-      <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 mt-1">
-          {goal.completed ? (
-            <CheckCircle2 className="w-5 h-5 text-green-400" />
-          ) : (
-            <Circle className="w-5 h-5 text-gray-400" />
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3
-            className={`font-semibold ${
-              goal.completed ? "line-through text-gray-500" : "text-white"
-            }`}
-          >
-            {goal.title}
-          </h3>
-          {goal.description && (
-            <p className="text-sm text-gray-400 mt-1">{goal.description}</p>
-          )}
-          {goal.deadline && (
-            <p
-              className={`text-xs mt-2 ${
-                isOverdue(goal.deadline) && !goal.completed
-                  ? "text-red-400 font-semibold"
-                  : "text-gray-500"
-              }`}
-            >
-              {isOverdue(goal.deadline) && !goal.completed
-                ? "Overdue: "
-                : "Due: "}
-              {formatDate(goal.deadline)}
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
 
   const goalsToDisplay = activeTab === "my" ? myGoals : teamGoals;
   const stats = {
@@ -148,48 +92,56 @@ const GoalsPage: React.FC<GoalsPageProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-white">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Header */}
-      <div className="bg-[#1a1a1a]/60 backdrop-blur-xl border-b border-gray-800/50 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-6 flex items-center gap-4">
-          <button
-            onClick={onBack}
-            className="p-2 hover:bg-gray-800/50 rounded-lg transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]">
-              Goals
-            </h1>
-            <p className="text-sm text-gray-400">
-              Track your personal and team goals
-            </p>
+      <header className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3.5 sm:px-6">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onBack}
+              className="rounded-lg border border-border bg-background p-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              aria-label="Back to chat"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <div>
+              <h1 className="font-display text-lg font-bold tracking-tight text-foreground">
+                Goals
+              </h1>
+              <p className="text-xs text-muted-foreground">
+                Track personal and team commitments
+              </p>
+            </div>
           </div>
+
+          <ThemeToggle compact />
         </div>
-      </div>
+      </header>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Tabs */}
-        <div className="flex gap-2 mb-8 border-b border-gray-800/50">
+      <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:px-6">
+        {/* Segmented Tabs */}
+        <div className="mb-6 flex items-center gap-1 border-b border-border">
           <button
+            type="button"
             onClick={() => setActiveTab("my")}
-            className={`px-6 py-3 font-semibold transition-all ${
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
               activeTab === "my"
-                ? "border-b-2 border-[#4BBEBB] text-[#4BBEBB]"
-                : "text-gray-400 hover:text-gray-300"
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            My Goals
+            Personal Goals
           </button>
           {hasTeams && (
             <button
+              type="button"
               onClick={() => setActiveTab("team")}
-              className={`px-6 py-3 font-semibold transition-all ${
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === "team"
-                  ? "border-b-2 border-[#4BBEBB] text-[#4BBEBB]"
-                  : "text-gray-400 hover:text-gray-300"
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
               Team Goals
@@ -197,60 +149,110 @@ const GoalsPage: React.FC<GoalsPageProps> = ({ onBack }) => {
           )}
         </div>
 
-        {/* Stats */}
+        {/* Summary Strip */}
         {!loading && (
-          <div className="grid grid-cols-3 gap-4 mb-8">
-            <div className="bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 rounded-xl p-4">
-              <p className="text-gray-400 text-sm">Total</p>
-              <p className="text-2xl font-bold text-white">{stats.total}</p>
-            </div>
-            <div className="bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 rounded-xl p-4">
-              <p className="text-gray-400 text-sm">Completed</p>
-              <p className="text-2xl font-bold text-green-400">
-                {stats.completed}
+          <div className="mb-8 grid grid-cols-3 gap-4">
+            <div className="rounded-xl border border-border bg-card p-4">
+              <p className="text-xs font-medium text-muted-foreground">Total</p>
+              <p className="mt-1 font-display text-2xl font-bold text-foreground tabular-nums">
+                {stats.total}
               </p>
             </div>
-            <div className="bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 rounded-xl p-4">
-              <p className="text-gray-400 text-sm">Active</p>
-              <p className="text-2xl font-bold text-blue-400">{stats.active}</p>
+            <div className="rounded-xl border border-border bg-card p-4">
+              <p className="text-xs font-medium text-muted-foreground">Active</p>
+              <p className="mt-1 font-display text-2xl font-bold text-primary tabular-nums">
+                {stats.active}
+              </p>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-4">
+              <p className="text-xs font-medium text-muted-foreground">
+                Completed
+              </p>
+              <p className="mt-1 font-display text-2xl font-bold text-success tabular-nums">
+                {stats.completed}
+              </p>
             </div>
           </div>
         )}
 
         {/* Goals List */}
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin">
-              <div className="w-8 h-8 border-4 border-gray-700 border-t-[#4BBEBB] rounded-full"></div>
-            </div>
+          <div className="flex items-center justify-center py-16">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" />
           </div>
         ) : goalsToDisplay.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-400">
+          <div className="rounded-xl border border-border bg-card p-10 text-center">
+            <p className="font-display text-base font-semibold text-foreground">
+              {activeTab === "my" ? "No personal goals yet" : "No team goals yet"}
+            </p>
+            <p className="mt-1.5 text-sm text-muted-foreground">
               {activeTab === "my"
-                ? "No personal goals yet. Create one through chat!"
-                : "No team goals yet. Only leads can create team goals."}
+                ? "Mention a deadline in your journal chat and ReflectIQ will create a goal automatically."
+                : "Team leads can create shared goals directly from Team Space."}
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {goalsToDisplay.map((goal) => (
-              <GoalCard key={goal.id} goal={goal} />
-            ))}
+          <div className="divide-y divide-border rounded-xl border border-border bg-card overflow-hidden">
+            {goalsToDisplay.map((goal) => {
+              const overdue = isOverdue(goal.deadline) && !goal.completed;
+              return (
+                <div
+                  key={goal.id}
+                  className="flex items-start gap-3.5 p-4 sm:p-5 hover:bg-secondary/30 transition-colors"
+                >
+                  <div className="mt-0.5 shrink-0">
+                    {goal.completed ? (
+                      <CheckCircle2 className="h-5 w-5 text-success" />
+                    ) : (
+                      <Circle className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <h3
+                        className={`text-sm font-semibold ${
+                          goal.completed
+                            ? "line-through text-muted-foreground"
+                            : "text-foreground"
+                        }`}
+                      >
+                        {goal.title}
+                      </h3>
+                      {goal.deadline && (
+                        <span
+                          className={`font-mono text-xs tabular-nums ${
+                            overdue
+                              ? "font-medium text-destructive"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {overdue ? "Overdue · " : "Due "}
+                          {formatDate(goal.deadline)}
+                        </span>
+                      )}
+                    </div>
+                    {goal.description && (
+                      <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+                        {goal.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
-        {/* Info Box */}
-        <div className="mt-12 bg-gradient-to-r from-[#016BFF]/10 to-[#4BBEBB]/10 border border-[#4BBEBB]/30 rounded-xl p-6">
-          <p className="text-sm text-gray-300">
-            <span className="font-semibold">💡 Tip:</span> Goals are created
-            through chat with the AI. Ask to{" "}
-            <span className="text-[#4BBEBB]">create a goal</span> or{" "}
-            <span className="text-[#4BBEBB]">mark a goal complete</span>. Team
-            leads can manage team goals.
+        {/* Guidance Note */}
+        <div className="mt-8 flex items-start gap-3 rounded-xl border border-border bg-secondary/50 p-4">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Goals are managed through natural conversation. Ask ReflectIQ in
+            chat to create a goal, check progress against your journal entries,
+            or mark a goal complete.
           </p>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

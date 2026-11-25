@@ -274,14 +274,11 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
       .slice(0, 2);
   };
 
-  // Generate color for avatar
+  // Generate subtle tonal badge color for avatar
   const getAvatarColor = (email: string): string => {
     const colors = [
-      "from-blue-500 to-cyan-500",
-      "from-purple-500 to-pink-500",
-      "from-green-500 to-teal-500",
-      "from-orange-500 to-red-500",
-      "from-indigo-500 to-purple-500",
+      "bg-secondary text-foreground",
+      "bg-accent text-accent-foreground",
     ];
     const index = email.charCodeAt(0) % colors.length;
     return colors[index];
@@ -450,10 +447,10 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
   // Show loading state
   if (loading) {
     return (
-      <div className="h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center">
+      <div className="h-screen bg-background text-foreground flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-[#4BBEBB] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading teams...</p>
+          <div className="h-6 w-6 border-2 border-border border-t-primary rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-xs text-muted-foreground">Loading teams...</p>
         </div>
       </div>
     );
@@ -462,27 +459,32 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
   // Show empty state when no teams
   if (!loading && teams.length === 0) {
     return (
-      <div className="h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center p-4">
-        <div className="text-center max-w-md">
+      <div className="h-screen bg-background text-foreground flex items-center justify-center p-4 relative">
+        <div className="text-center max-w-md rounded-xl border border-border bg-card p-8">
           {onBack && (
             <button
+              type="button"
               onClick={onBack}
-              className="absolute top-4 left-4 p-2 hover:bg-gray-800/50 rounded-lg transition-all"
+              className="absolute top-4 left-4 rounded-lg border border-border bg-card p-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              aria-label="Back"
             >
-              <ArrowLeft className="w-5 h-5 text-gray-400" />
+              <ArrowLeft className="w-4 h-4" />
             </button>
           )}
-          <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] flex items-center justify-center">
-            <Users className="w-12 h-12 text-white" />
+          <div className="w-12 h-12 mx-auto mb-4 rounded-lg bg-secondary text-primary flex items-center justify-center">
+            <Users className="w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-3">No Teams Yet</h2>
-          <p className="text-gray-400 mb-6">
-            You haven't joined any teams. Create a new team or join an existing
-            one to get started.
+          <h2 className="font-display text-xl font-bold text-foreground mb-2">
+            No Teams Yet
+          </h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            You have not joined any teams. Create a new team or join an existing
+            one with an invite code.
           </p>
           <button
+            type="button"
             onClick={() => navigate("/create-join-team")}
-            className="px-8 py-3 bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-white rounded-xl font-semibold hover:opacity-90 transition-all"
+            className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors"
           >
             Create or Join Team
           </button>
@@ -492,165 +494,181 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex font-['Inter',sans-serif] overflow-hidden">
+    <div className="h-screen bg-background text-foreground flex overflow-hidden">
       {/* Left Sidebar - Teams List */}
-      <div
+      <aside
         className={`${
           showSidebar ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0 fixed md:static inset-y-0 left-0 z-50 w-full sm:w-80 md:w-96 bg-[#1a1a1a]/80 backdrop-blur-xl border-r border-gray-800/50 flex flex-col transition-transform duration-300`}
+        } md:translate-x-0 fixed md:static inset-y-0 left-0 z-50 w-full sm:w-80 bg-sidebar border-r border-sidebar-border flex flex-col transition-transform duration-200`}
       >
         {/* Header */}
-        <div className="p-3 sm:p-4 bg-[#1a1a1a]/60 backdrop-blur-xl border-b border-gray-800/50">
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <div className="flex items-center gap-2">
+        <div className="p-4 border-b border-sidebar-border space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
               {onBack && (
                 <button
+                  type="button"
                   onClick={onBack}
-                  className="p-1.5 sm:p-2 hover:bg-gray-800/50 rounded-lg transition-all"
+                  className="rounded-lg border border-border bg-card p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                  aria-label="Back to journal"
                 >
-                  <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                  <ArrowLeft className="w-4 h-4" />
                 </button>
               )}
-              <h1 className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#016BFF] to-[#4BBEBB]">
-                Teams
+              <h1 className="font-display text-lg font-bold tracking-tight text-foreground">
+                Team Space
               </h1>
             </div>
-            <button className="p-1.5 sm:p-2 hover:bg-gray-800/50 rounded-lg transition-all">
-              <MoreVertical className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+            <button
+              type="button"
+              onClick={() => navigate("/create-join-team")}
+              className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-secondary transition-colors"
+            >
+              + New
             </button>
           </div>
 
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search teams..."
-              className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 bg-gray-800/60 border border-gray-700/50 rounded-lg text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4BBEBB]/50"
+              className="w-full pl-9 pr-3 py-2 bg-background border border-input rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
         </div>
 
         {/* Teams List */}
-        <div className="flex-1 overflow-y-auto">
-          {filteredTeams.map((team) => (
-            <div
-              key={team.id}
-              onClick={() => {
-                setSelectedTeam(team);
-                setShowTeamInfo(false);
-                setShowSidebar(false);
-              }}
-              className={`p-3 sm:p-4 border-b border-gray-800/50 cursor-pointer hover:bg-gray-800/30 transition-all ${
-                selectedTeam?.id === team.id ? "bg-gray-800/50" : ""
-              }`}
-            >
-              <div className="flex items-center gap-2 sm:gap-3">
-                {/* Team Avatar */}
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] flex items-center justify-center text-white font-bold text-sm sm:text-base flex-shrink-0">
-                  {getInitials(team.name)}
-                </div>
+        <div className="flex-1 overflow-y-auto divide-y divide-sidebar-border">
+          {filteredTeams.map((team) => {
+            const isSelected = selectedTeam?.id === team.id;
+            return (
+              <div
+                key={team.id}
+                onClick={() => {
+                  setSelectedTeam(team);
+                  setShowTeamInfo(false);
+                  setShowSidebar(false);
+                }}
+                className={`p-3.5 cursor-pointer transition-colors ${
+                  isSelected
+                    ? "bg-card text-foreground"
+                    : "hover:bg-sidebar-accent/70"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-secondary border border-border flex items-center justify-center font-mono text-xs font-semibold text-foreground shrink-0">
+                    {getInitials(team.name)}
+                  </div>
 
-                {/* Team Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-0.5 sm:mb-1">
-                    <h3 className="text-sm sm:text-base text-white font-semibold truncate">
-                      {team.name}
-                    </h3>
-                    <span className="text-xs text-gray-400 ml-2">
-                      {formatTimestamp(team.timestamp)}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-sm font-semibold text-foreground truncate">
+                        {team.name}
+                      </h3>
+                      <span className="font-mono text-[11px] text-muted-foreground tabular-nums shrink-0">
+                        {formatTimestamp(team.timestamp)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {team.members.length} members
+                    </p>
+                  </div>
+
+                  {team.unreadCount > 0 && (
+                    <span className="min-w-5 h-5 px-1.5 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-mono text-[11px] font-medium shrink-0">
+                      {team.unreadCount}
                     </span>
-                  </div>
-                  {/* <p className="text-xs sm:text-sm text-gray-400 truncate">
-                    {team.lastMessage}
-                  </p> */}
+                  )}
                 </div>
-
-                {/* Unread Badge */}
-                {team.unreadCount > 0 && (
-                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] flex items-center justify-center text-xs text-white font-bold flex-shrink-0">
-                    {team.unreadCount}
-                  </div>
-                )}
               </div>
-            </div>
-          ))}
-
-          {/* Create/Join Team Button */}
-          <div className="p-3 sm:p-4">
-            <button
-              onClick={() => navigate("/create-join-team")}
-              className="w-full px-4 py-3 bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-white rounded-xl font-semibold hover:opacity-90 transition-all flex items-center justify-center gap-2"
-            >
-              <Users className="w-4 h-4" />
-              Create or Join Team
-            </button>
-          </div>
+            );
+          })}
         </div>
-      </div>
+
+        <div className="p-3 border-t border-sidebar-border">
+          <button
+            type="button"
+            onClick={() => navigate("/create-join-team")}
+            className="w-full px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+          >
+            <Users className="w-3.5 h-3.5" />
+            Create or Join Team
+          </button>
+        </div>
+      </aside>
 
       {/* Overlay for mobile when sidebar is open */}
       {showSidebar && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          className="fixed inset-0 bg-foreground/20 backdrop-blur-xs z-40 md:hidden"
           onClick={() => setShowSidebar(false)}
         />
       )}
 
       {/* Main Chat Area */}
       {selectedTeam && !showTeamInfo && (
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Chat Header */}
-          <div className="h-14 sm:h-16 bg-[#1a1a1a]/60 backdrop-blur-xl border-b border-gray-800/50 flex items-center justify-between px-3 sm:px-6">
-            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+          <header className="h-14 bg-card/90 border-b border-border flex items-center justify-between px-4 shrink-0">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
               <button
+                type="button"
                 onClick={() => setShowSidebar(true)}
-                className="md:hidden p-1.5 sm:p-2 hover:bg-gray-800/50 rounded-lg transition-all flex-shrink-0"
+                className="md:hidden p-1.5 hover:bg-secondary rounded-lg transition-colors shrink-0"
+                aria-label="Open teams list"
               >
-                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                <ArrowLeft className="w-4 h-4 text-muted-foreground" />
               </button>
 
-              {/* Clickable Avatar and Name Container */}
-              <div
+              <button
+                type="button"
                 onClick={() => setShowTeamInfo(true)}
-                className="flex items-center gap-2 sm:gap-3 cursor-pointer hover:bg-gray-800/30 rounded-lg p-1.5 sm:p-2 -m-1.5 sm:-m-2 transition-all flex-1 min-w-0"
+                className="flex items-center gap-3 text-left hover:bg-secondary/60 rounded-lg px-2 py-1 -ml-2 transition-colors min-w-0"
               >
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] flex items-center justify-center text-white font-bold text-sm sm:text-base flex-shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center font-mono text-xs font-semibold text-foreground shrink-0">
                   {getInitials(selectedTeam.name)}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-sm sm:text-base text-white font-semibold truncate">
+                <div className="min-w-0">
+                  <h2 className="font-display text-sm font-semibold text-foreground truncate">
                     {selectedTeam.name}
                   </h2>
-                  <p className="text-xs text-gray-400 truncate">
-                    {selectedTeam.members.length} members
+                  <p className="text-xs text-muted-foreground truncate">
+                    {selectedTeam.members.length} members · Click for info
                   </p>
                 </div>
-              </div>
+              </button>
             </div>
-          </div>
+
+            <button
+              type="button"
+              onClick={() => setShowTeamInfo(true)}
+              className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              aria-label="Team details"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
+          </header>
 
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdi0yMGgtNjB6IiBmaWxsPSJyZ2JhKDI1NSwgMjU1LCAyNTUsIDAuMDIpIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCBmaWxsPSJ1cmwoI2EpIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIi8+PC9zdmc+')] bg-gray-900/50">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-background">
             {messages.length === 0 ? (
               <div className="h-full flex items-center justify-center">
-                <div className="text-center space-y-3 px-4">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-full bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] opacity-20 flex items-center justify-center">
-                    <Send className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-                  </div>
-                  <h3 className="text-base sm:text-lg font-semibold text-white">
-                    No journal entries yet
+                <div className="text-center space-y-2 max-w-sm px-4">
+                  <h3 className="font-display text-base font-semibold text-foreground">
+                    No team journal entries yet
                   </h3>
-                  <p className="text-xs sm:text-sm text-gray-400 max-w-sm mx-auto">
-                    Start journaling! Write your thoughts and ask the AI to
-                    fetch team insights anytime.
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                    Share updates with your team or ask the assistant to search
+                    team entries and track shared goals.
                   </p>
                 </div>
               </div>
             ) : (
-              <div className="space-y-3 sm:space-y-4 max-w-4xl mx-auto">
+              <div className="space-y-4 max-w-3xl mx-auto">
                 {messages.map((message) => (
                   <div
                     key={message.id}
@@ -658,36 +676,30 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
                       message.isCurrentUser ? "justify-end" : "justify-start"
                     }`}
                   >
-                    <div
-                      className={`max-w-[85%] sm:max-w-[75%] md:max-w-[70%] ${
-                        message.isCurrentUser
-                          ? "ml-4 sm:ml-8 md:ml-12"
-                          : "mr-4 sm:mr-8 md:mr-12"
-                      }`}
-                    >
+                    <div className="max-w-[85%] sm:max-w-[75%]">
                       {!message.isCurrentUser && (
-                        <p className="text-xs text-gray-400 mb-1 ml-2">
+                        <p className="font-mono text-[11px] text-muted-foreground mb-1">
                           {message.senderName}
                         </p>
                       )}
                       <div
-                        className={`rounded-2xl p-2.5 sm:p-3 ${
+                        className={`rounded-xl px-4 py-3 ${
                           message.isCurrentUser
-                            ? "bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] text-white"
-                            : "bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 text-white"
+                            ? "bg-primary text-primary-foreground rounded-br-sm"
+                            : "bg-card border border-border text-foreground rounded-bl-sm"
                         }`}
                       >
-                        <p className="text-xs sm:text-sm leading-relaxed break-words">
+                        <p className="text-sm leading-relaxed break-words">
                           {message.text}
                           {message.isTyping && (
-                            <span className="inline-block w-0.5 h-4 bg-white ml-1 animate-pulse"></span>
+                            <span className="inline-block w-0.5 h-4 bg-primary ml-1 animate-pulse" />
                           )}
                         </p>
                         <p
-                          className={`text-xs mt-1 ${
+                          className={`font-mono text-[11px] mt-1.5 tabular-nums ${
                             message.isCurrentUser
-                              ? "text-white/70"
-                              : "text-gray-500"
+                              ? "text-primary-foreground/75"
+                              : "text-muted-foreground"
                           }`}
                         >
                           {message.timestamp}
@@ -697,51 +709,23 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
                   </div>
                 ))}
 
-                {/* Loading indicator when waiting for response */}
                 {isStreaming && !streamingMessage && (
                   <div className="flex justify-start">
-                    <div className="max-w-[85%] sm:max-w-[75%] md:max-w-[70%] mr-4 sm:mr-8 md:mr-12">
-                      <p className="text-xs text-gray-400 mb-1 ml-2">
-                        Team Assistant
-                      </p>
-                      <div className="rounded-2xl p-2.5 sm:p-3 bg-gray-800/60 backdrop-blur-sm border border-gray-700/50">
-                        <div className="flex items-center gap-2">
-                          <div className="flex space-x-1">
-                            <div
-                              className="w-2 h-2 bg-[#4BBEBB] rounded-full animate-bounce"
-                              style={{ animationDelay: "0ms" }}
-                            ></div>
-                            <div
-                              className="w-2 h-2 bg-[#4BBEBB] rounded-full animate-bounce"
-                              style={{ animationDelay: "150ms" }}
-                            ></div>
-                            <div
-                              className="w-2 h-2 bg-[#4BBEBB] rounded-full animate-bounce"
-                              style={{ animationDelay: "300ms" }}
-                            ></div>
-                          </div>
-                          <span className="text-xs sm:text-sm text-gray-400">
-                            AI is thinking...
-                          </span>
-                        </div>
-                      </div>
+                    <div className="rounded-xl rounded-bl-sm border border-border bg-card px-4 py-3">
+                      <span className="font-mono text-xs text-muted-foreground">
+                        Team Assistant is thinking...
+                      </span>
                     </div>
                   </div>
                 )}
 
-                {/* Streaming AI Response */}
                 {isStreaming && streamingMessage && (
                   <div className="flex justify-start">
-                    <div className="max-w-[85%] sm:max-w-[75%] md:max-w-[70%] mr-4 sm:mr-8 md:mr-12">
-                      <p className="text-xs text-gray-400 mb-1 ml-2">
-                        Team Assistant
+                    <div className="max-w-[85%] sm:max-w-[75%] rounded-xl rounded-bl-sm border border-border bg-card px-4 py-3 text-foreground">
+                      <p className="text-sm leading-relaxed break-words">
+                        {streamingMessage}
+                        <span className="inline-block w-0.5 h-4 bg-primary ml-1 animate-pulse" />
                       </p>
-                      <div className="rounded-2xl p-2.5 sm:p-3 bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 text-white">
-                        <p className="text-xs sm:text-sm leading-relaxed break-words">
-                          {streamingMessage}
-                          <span className="inline-block w-1 h-4 bg-[#4BBEBB] ml-1 animate-pulse"></span>
-                        </p>
-                      </div>
                     </div>
                   </div>
                 )}
@@ -750,16 +734,15 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
           </div>
 
           {/* Message Input */}
-          <div className="bg-[#1a1a1a]/60 backdrop-blur-xl border-t border-gray-800/50 p-3 sm:p-4">
-            {/* Connection Status */}
+          <div className="bg-card/90 border-t border-border p-3.5 sm:p-4 shrink-0">
             {!isConnected && (
-              <div className="max-w-4xl mx-auto mb-2 text-center">
-                <p className="text-xs text-yellow-500">
+              <div className="max-w-3xl mx-auto mb-2">
+                <p className="font-mono text-[11px] text-warning">
                   Connecting to team chat...
                 </p>
               </div>
             )}
-            <div className="max-w-4xl mx-auto flex gap-2 sm:gap-3">
+            <div className="max-w-3xl mx-auto flex gap-2.5">
               <input
                 type="text"
                 value={messageInput}
@@ -767,21 +750,20 @@ const TeamSpace: React.FC<TeamSpaceProps> = ({ onBack }) => {
                 onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
                 placeholder={
                   isConnected
-                    ? "Ask AI to save journals, search entries, set goals..."
+                    ? "Ask AI to save journals, search entries, or set team goals..."
                     : "Connecting..."
                 }
                 disabled={!isConnected || isStreaming}
-                className="flex-1 bg-gray-800/60 border border-gray-700/50 rounded-xl px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4BBEBB]/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 bg-background border border-input rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <button
-                onClick={() => {
-                  console.log("[Team Chat] Send button clicked");
-                  handleSendMessage();
-                }}
+                type="button"
+                onClick={() => handleSendMessage()}
                 disabled={!messageInput.trim() || !isConnected || isStreaming}
-                className="bg-gradient-to-r from-[#016BFF] to-[#4BBEBB] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl px-4 sm:px-6 py-2 sm:py-3 font-semibold transition-all flex items-center gap-2"
+                aria-label="Send team message"
+                className="bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-primary-foreground rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors flex items-center gap-2"
               >
-                <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <Send className="w-4 h-4" />
               </button>
             </div>
           </div>
