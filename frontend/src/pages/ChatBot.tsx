@@ -22,6 +22,7 @@ import CalendarPage from "./CalendarPage";
 import { logout } from "../utils/auth";
 import { API_BASE_URL, WS_BASE_URL } from "../config/env";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { BrandMark } from "../components/logo";
 
 interface Message {
   id: number;
@@ -450,11 +451,7 @@ const ChatBot: React.FC = () => {
         {/* Brand */}
         <div className="h-14 px-4 border-b border-sidebar-border flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
-            <img
-              src="/logo-img.png"
-              alt="ReflectIQ mark"
-              className="h-6 w-6 rounded object-contain"
-            />
+            <BrandMark className="h-6 w-6 shrink-0" />
             <span className="font-display text-base font-bold tracking-tight text-sidebar-foreground">
               ReflectIQ
             </span>

@@ -82,7 +82,7 @@ function LandingPage() {
 
               <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
                 ReflectIQ is a conversational journal that listens to natural
-                language and decides what to do—saving reflections, extracting
+                language and decides what to do: saving reflections, extracting
                 deadlines into goals, and recalling past entries by meaning.
               </p>
 
@@ -274,7 +274,7 @@ function LandingPage() {
 
       <footer className="border-t border-border bg-background">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-3 px-4 py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:px-6 lg:px-8">
-          <span>ReflectIQ — Conversational AI Journal</span>
+          <span>ReflectIQ · Conversational AI Journal</span>
           <div className="flex items-center gap-5">
             <button
               type="button"

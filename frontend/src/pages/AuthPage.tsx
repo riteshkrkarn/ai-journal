@@ -5,6 +5,7 @@ import type { SubmitHandler } from "react-hook-form";
 import { login, register, hasAuth } from "../utils/auth";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { BrandMark } from "../components/logo";
 
 type SigninFormData = {
   email: string;
@@ -100,11 +101,7 @@ const AuthPage: React.FC = () => {
       <div className="flex flex-1 items-center justify-center px-4 py-8">
         <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 sm:p-8 shadow-sm">
           <div className="flex items-center gap-2.5 mb-6">
-            <img
-              src="/logo-img.png"
-              alt="ReflectIQ mark"
-              className="h-7 w-7 rounded-md object-contain"
-            />
+            <BrandMark className="h-7 w-7 shrink-0" />
             <span className="font-display text-lg font-bold tracking-tight text-foreground">
               ReflectIQ
             </span>
